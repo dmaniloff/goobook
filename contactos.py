@@ -1,36 +1,85 @@
 #!/usr/bin/env python
-import gdata.contacts.service
-from optparse import OptionParser
 import sys
 import os
-parser = OptionParser()
-parser.add_option("-A", "--add-address", action="store_false",
-        help="Modo de parseo de mensajes para agregar direcciones")
+import re
+import pickle
+from datetime import datetime
+
+from gdata.contacts.service import ContactsService, ContactsQuery
 
 
-if len(sys.argv) < 2:
-    sys.exit(0)
+class GooBook(object):
+    def __init__ (self, username, password, max_results, cache_filename):
+        self.username = username
+        self.password = password
+        self.max_results = max_results
+        self.cache_filename = cache_filename
 
-
-client = gdata.contacts.service.ContactsService()
-client.ClientLogin('cjbarroso@gmail.com', '57z!bW*-jsH9')
-cadBusq = sys.argv[1]
-query = gdata.contacts.service.ContactsQuery()
-query.max_results='9999'
-feed = client.GetContactsFeed(query.ToUri())
-agenda = []
-for e in feed.entry:
-    # checkeos y resumenes
-    for i in e.email:
-        if e.title.text:
-            agenda.append("%s\t%s"%(e.title.text,i.address))
+    def query(self, query):
+        """
+        Do the query, and print it out in 
+        """
+        match = re.compile(query, re.I).search
+        feed = self.load()
+        for entry in feed.entry:
+            name = entry.title.text or ''
+            name_matches = match(name)
+            for email in entry.email:
+                address = email.address
+                primary = email.primary
+                if (name_matches and primary == 'true') \
+                        or (not name_matches and match(address)):
+                    print "%s\t%s" % (name or address, address)
+            
+    def load(self):
+        """
+        Load the cached addressbook feed, or fetch it (again) if it is
+        old or missing or invalid or anyting
+        """
+        try:
+            picklefile = file(self.cache_filename, 'rb')
+        except IOError:
+            # we should probably catch picke errors too...
+            feed = self.fetch()
+            self.store(feed)
         else:
-            agenda.append("%s\t%s"%(i.address,i.address))
+            stamp, feed = pickle.load(picklefile)
+            if (datetime.now() - stamp).days:
+                feed = self.fetch()
+                self.store(feed)
+        return feed
 
+    def fetch(self):
+        """
+        Actually go out on the wire and fetch the addressbook. 
+        """
+        client = ContactsService()
+        client.ClientLogin(self.username, self.password)
+        query = ContactsQuery()
+        query.max_results = self.max_results
+        feed = client.GetContactsFeed(query.ToUri())
+        return feed
 
-if agenda:
-    for e in agenda:
-        if cadBusq in e:
-            print e
-else:
-    print "No Encontrado"
+    def store(self, adbk):
+        """
+        Pickle the addressbook and a timestamp
+        """
+        picklefile = file(self.cache_filename, 'wb')
+        stamp = datetime.now()
+        pickle.dump((stamp, adbk), picklefile)
+        
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        sys.exit(1)
+    
+    try:
+        from settings import USERNAME, PASSWORD, MAX_RESULTS, CACHE_FILENAME
+    except ImportError:
+        raise RuntimeError("Please create a valid settings.py"
+                           " (look at settings_example.py for inspiration)")
+    else:
+        CACHE_FILENAME = os.path.realpath(os.path.expanduser(CACHE_FILENAME))
+
+    goobk = GooBook(USERNAME, PASSWORD, MAX_RESULTS, CACHE_FILENAME)
+    goobk.query(sys.argv[1])
