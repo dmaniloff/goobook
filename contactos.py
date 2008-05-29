@@ -14,23 +14,18 @@ class GooBook(object):
         self.password = password
         self.max_results = max_results
         self.cache_filename = cache_filename
+        self.addrbk = {}
 
     def query(self, query):
         """
-        Do the query, and print it out in 
+        Do the query, and print it out in
         """
+        self.load()
         match = re.compile(query, re.I).search
-        feed = self.load()
-        for entry in feed.entry:
-            name = entry.title.text or ''
-            name_matches = match(name)
-            for email in entry.email:
-                address = email.address
-                primary = email.primary
-                if (name_matches and primary == 'true') \
-                        or (not name_matches and match(address)):
-                    print "%s\t%s" % (name or address, address)
-            
+        resultados = dict([(k,v) for k,v in self.addrbk.items() if match(k) or match(v)])
+        for (k,v) in resultados.items():
+            print "%s\t%s"%(k,v)
+
     def load(self):
         """
         Load the cached addressbook feed, or fetch it (again) if it is
@@ -40,39 +35,46 @@ class GooBook(object):
             picklefile = file(self.cache_filename, 'rb')
         except IOError:
             # we should probably catch picke errors too...
-            feed = self.fetch()
-            self.store(feed)
+            self.fetch()
+            #  simplifico el feed, con formato 'titulo'\t'email' sin ''
         else:
-            stamp, feed = pickle.load(picklefile)
+            stamp, self.addrbk = pickle.load(picklefile) #optimizar
             if (datetime.now() - stamp).days:
-                feed = self.fetch()
-                self.store(feed)
-        return feed
+                self.fetch()
+        finally:
+            self.store()
+
 
     def fetch(self):
         """
-        Actually go out on the wire and fetch the addressbook. 
+        Actually go out on the wire and fetch the addressbook.
+
         """
         client = ContactsService()
         client.ClientLogin(self.username, self.password)
         query = ContactsQuery()
         query.max_results = self.max_results
         feed = client.GetContactsFeed(query.ToUri())
-        return feed
+        for e in feed.entry:
+            for i in e.email:
+                if e.title.text:
+                    self.addrbk[i.address] = e.title.text
+                else:
+                    self.addrbk[i.address] = i.address
 
-    def store(self, adbk):
+    def store(self):
         """
         Pickle the addressbook and a timestamp
         """
         picklefile = file(self.cache_filename, 'wb')
         stamp = datetime.now()
-        pickle.dump((stamp, adbk), picklefile)
-        
+        pickle.dump((stamp, self.addrbk), picklefile)
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         sys.exit(1)
-    
+
     try:
         from settings import USERNAME, PASSWORD, MAX_RESULTS, CACHE_FILENAME
     except ImportError:
