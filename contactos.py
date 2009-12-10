@@ -6,7 +6,8 @@ import pickle
 from datetime import datetime
 
 from gdata.contacts.service import ContactsService, ContactsQuery
-
+from gdata.contacts import ContactEntry, Email
+import atom
 
 class GooBook(object):
     def __init__ (self, username, password, max_results, cache_filename):
@@ -23,6 +24,7 @@ class GooBook(object):
         self.load()
         match = re.compile(query, re.I).search
         resultados = dict([(k,v) for k,v in self.addrbk.items() if match(k) or match(v)])
+        print "\n"
         for (k,v) in resultados.items():
             print "%s\t%s"%(k,v)
 
@@ -70,9 +72,44 @@ class GooBook(object):
         stamp = datetime.now()
         pickle.dump((stamp, self.addrbk), picklefile)
 
+    def add(self):
+        """
+        Add an address from From: field of a mail. This assumes a single mail file is supplied through stdin. . 
+        """
+
+        fromLine = ""
+        for l in sys.stdin:
+            if l.startswith("From: "): 
+                fromLine = l
+                break
+        if fromLine == "":
+            print "Not a valid mail file!"
+            sys.exit(2) 
+        #In a line like
+        #From: John Doe <john@doe.com> 
+        els = fromLine.split()
+        #Drop "From: "
+        del els[0]
+        #get the last element as mail
+        mailaddr = els[-1]
+        if mailaddr.startswith("<"):
+            mailaddr = mailaddr[1:]
+        if mailaddr.endswith(">"):
+            mailaddr = mailaddr[:-1]
+        #and the rest as name
+        name = " ".join(els[:-1])
+        #save to contacts
+        client = ContactsService()
+        client.ClientLogin(self.username, self.password)
+        new_contact = ContactEntry(title=atom.Title(text=name))
+        new_contact.email.append(Email(address=mailaddr, primary='true'))
+        contact_entry = client.CreateContact(new_contact)
+        print contact_entry
+        
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
+        print "Usage: python contactos.py query <name> or python contactos.py add <mail.at.stdin>>"
         sys.exit(1)
 
     try:
@@ -84,4 +121,14 @@ if __name__ == '__main__':
         CACHE_FILENAME = os.path.realpath(os.path.expanduser(CACHE_FILENAME))
 
     goobk = GooBook(USERNAME, PASSWORD, MAX_RESULTS, CACHE_FILENAME)
-    goobk.query(sys.argv[1])
+    if sys.argv[1] == "query":
+        if len(sys.argv) < 3:
+            print "Usage: python contactos.py query <name> or python contactos.py add <mail.at.stdin>>"
+            sys.exit(1)
+        goobk.query(sys.argv[2])
+    elif sys.argv[1] == "add":
+        goobk.add()
+    else:
+            print "Usage: python contactos.py query <name> or python contactos.py add <mail.at.stdin>>"
+        sys.exit(1)
+        
