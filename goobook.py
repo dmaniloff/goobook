@@ -109,7 +109,7 @@ class GooBook(object):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print "Usage: python contactos.py query <name> or python contactos.py add <mail.at.stdin>>"
+        print "Usage: python goobook.py query <name> or python goobook.py add <mail.at.stdin>>"
         sys.exit(1)
 
     try:
@@ -123,12 +123,12 @@ if __name__ == '__main__':
     goobk = GooBook(USERNAME, PASSWORD, MAX_RESULTS, CACHE_FILENAME)
     if sys.argv[1] == "query":
         if len(sys.argv) < 3:
-            print "Usage: python contactos.py query <name> or python contactos.py add <mail.at.stdin>>"
+            print "Usage: python goobook.py query <name> or python goobook.py add <mail.at.stdin>>"
             sys.exit(1)
         goobk.query(sys.argv[2])
     elif sys.argv[1] == "add":
         goobk.add()
     else:
-            print "Usage: python contactos.py query <name> or python contactos.py add <mail.at.stdin>>"
+            print "Usage: python goobook.py query <name> or python goobook.py add <mail.at.stdin>>"
         sys.exit(1)
         
