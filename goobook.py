@@ -71,9 +71,10 @@ class GooBook(object):
         """
         Pickle the addressbook and a timestamp
         """
-        picklefile = file(self.cache_filename, 'wb')
-        stamp = datetime.now()
-        pickle.dump((stamp, self.addrbk), picklefile)
+        if self.addrbk: # never store a empty addressbook
+            picklefile = file(self.cache_filename, 'wb')
+            stamp = datetime.now()
+            pickle.dump((stamp, self.addrbk), picklefile)
 
     def add(self):
         """
