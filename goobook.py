@@ -50,7 +50,7 @@ class GooBook(object):
                            if match(k) or match(v)])
         # mutt's query_command expects the first line to be a message,
         # which it discards.
-        print "\n"
+        print "\n",
         for (name, mail) in resultados.items():
             print "%s\t%s" % (name, mail)
 
