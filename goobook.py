@@ -9,9 +9,8 @@ google data api (gdata).
 import sys
 import os
 import re
-import pickle
+import time
 import ConfigParser
-from datetime import datetime
 from os.path import realpath, expanduser
 
 from gdata.contacts.service import ContactsService, ContactsQuery
@@ -24,11 +23,11 @@ username: user@gmail.com
 password: top secret
 max_results: 9999
 cache_filename: ~/.goobook_cache
-cache_expiry_days: 1
+cache_expiry_hours: 1
 '''
 
 class GooBook(object):
-    '''This class can't be used as a library as it looks now, it user sys.stdin
+    '''This class can't be used as a library as it looks now, it uses sys.stdin
     print and sys.exit().'''
     def __init__ (self, config):
         self.username = config.get('DEFAULT', 'username')
@@ -36,9 +35,8 @@ class GooBook(object):
         self.max_results = config.get('DEFAULT', 'max_results')
         self.cache_filename = config.get('DEFAULT', 'cache_filename')
         self.cache_filename = realpath(expanduser(self.cache_filename))
-        self.cache_expiry_days = config.get('DEFAULT', 'cache_expiry_days')
-
-        self.addrbk = {}
+        self.cache_expiry_hours = config.get('DEFAULT', 'cache_expiry_hours')
+        self.contacts = [] #[{fieldname: value}]
 
     def query(self, query):
         """
@@ -46,13 +44,20 @@ class GooBook(object):
         """
         self.load()
         match = re.compile(query, re.I).search
-        resultados = dict([(k, v) for k, v in self.addrbk.items()
-                           if match(k) or match(v)])
+        result = []
+        for contact in self.contacts:
+            for value in contact.itervalues():
+                if value and match(value):
+                    result.append(contact)
+                    break
+
         # mutt's query_command expects the first line to be a message,
         # which it discards.
         print "\n",
-        for (name, mail) in resultados.items():
-            print "%s\t%s" % (name, mail)
+        for contact in result:
+            if 'email' in contact:
+                for email in contact['email'].split(','):
+                    print "%s\t%s" % (email, contact['name'])
 
     def load(self):
         """
@@ -60,17 +65,17 @@ class GooBook(object):
         old or missing or invalid or anyting
         """
         try:
-            picklefile = file(self.cache_filename, 'rb')
-        except IOError:
-            # we should probably catch picke errors too...
+            abook = AbookDatabase(self.cache_filename)
+            self.contacts = list(abook.get_contacts())
+        except (IOError, AbookError):
             self.fetch()
-            #  simplifico el feed, con formato 'titulo'\t'email' sin ''
-        else:
-            stamp, self.addrbk = pickle.load(picklefile) #optimizar
-            if (datetime.now() - stamp).days > self.cache_expiry_days:
-                self.fetch()
-        finally:
             self.store()
+        else:
+            # if cache older than cache_expiry_hours
+            if ((time.time() - os.path.getmtime(self.cache_filename)) >
+                (self.cache_expiry_hours * 60 *60)):
+                self.fetch()
+                self.store()
 
 
     def fetch(self):
@@ -84,21 +89,22 @@ class GooBook(object):
         query = ContactsQuery()
         query.max_results = self.max_results
         feed = client.GetContactsFeed(query.ToUri())
+        contacts = []
         for ent in feed.entry:
-            for i in ent.email:
-                if ent.title.text:
-                    self.addrbk[i.address] = ent.title.text
-                else:
-                    self.addrbk[i.address] = i.address
+            contact = {}
+            contact['name'] = ent.title.text
+            emails = [email.address for email in ent.email]
+            contact['email'] = ','.join(emails)
+            contacts.append(contact)
+        self.contacts = contacts
 
     def store(self):
         """
         Pickle the addressbook and a timestamp
         """
-        if self.addrbk: # never store a empty addressbook
-            picklefile = file(self.cache_filename, 'wb')
-            stamp = datetime.now()
-            pickle.dump((stamp, self.addrbk), picklefile)
+        if self.contacts: # never store a empty addressbook
+            abook = AbookDatabase(self.cache_filename)
+            abook.write_contacts(self.contacts)
 
     def add(self):
         """
@@ -135,6 +141,75 @@ class GooBook(object):
         new_contact.email.append(Email(address=mailaddr, primary='true'))
         contact_entry = client.CreateContact(new_contact)
         print contact_entry
+
+class AbookDatabase(object):
+    '''Parse and generate Abook compatible addressbook files.
+
+    abooks implementation can be seen here:
+    http://abook.cvs.sourceforge.net/viewvc/abook/abook/database.c
+    '''
+
+    def __init__(self, filename):
+        self.filename = filename
+
+    def get_contacts(self):
+        '''yields a {fieldname: value} for each contact. '''
+        for (name, sect) in self.read().iteritems():
+            if name != 'format':
+                yield sect
+
+    def read(self):
+        ''' read the abook file and return a list of its sections.
+            [{section: {fieldname: value}}]'''
+        sections = {}# {sectionname: {fieldname: value}}
+        with open(self.filename) as inp:
+            section = None
+            for line in inp:
+                line = line.strip()
+                if not line or line[0] == '#':
+                    pass
+                elif line[0] == '[':
+                    sectionname = line.strip('[]')
+                    if sectionname in sections:
+                        raise AbookError('ERROR parsing %s, duplicate '
+                            'section: %s' % (self.filename, sectionname))
+                    sections[sectionname] = section = {}
+                elif section == None:
+                    raise AbookError('ERROR parsing %s, no section '
+                            'header.' % self.filename)
+                elif '=' in line:
+                    (name, value) = line.split('=', 1)
+                    if name in section:
+                        raise AbookError('ERROR parsing %s, duplicate '
+                            'field: %s' % (self.filename, name))
+                    section[name] = value
+                else:
+                    raise AbookError('Failed to parse line in %s: %s' %
+                                           (self.filename, repr(line)))
+        return sections
+
+    def write_contacts(self, contacts):
+        '''Write the list of contacts [{fieldname: value}] to disk'''
+        sections = {}
+        for (i, contact) in enumerate(contacts):
+            sections[i] = contact
+        self.write(sections)
+
+    def write(self, sections):
+        '''sections is a {sectionname: {fieldname: value}}'''
+        with open(self.filename, 'w') as out:
+            out.write('[format]\n'
+                      'program=goobook\n'
+                      'version=2.0.0\n\n')
+            for (sectionname, section) in sections.iteritems():
+                out.write('[%s]\n' % sectionname)
+                for (name, value) in section.iteritems():
+                    out.write('%s=%s\n' % (name, value))
+                out.write('\n')
+
+class AbookError(Exception):
+    '''Exception thrown when failing to parse a abook file.'''
+    pass
 
 def usage():
     print """\
