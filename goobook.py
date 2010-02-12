@@ -55,6 +55,7 @@ class GooBook(object):
 
         """
         client = ContactsService()
+        client.ssl = True
         client.ClientLogin(self.username, self.password)
         query = ContactsQuery()
         query.max_results = self.max_results
@@ -102,6 +103,7 @@ class GooBook(object):
         name = " ".join(els[:-1])
         #save to contacts
         client = ContactsService()
+        client.ssl = True
         client.ClientLogin(self.username, self.password)
         new_contact = ContactEntry(title=atom.Title(text=name))
         new_contact.email.append(Email(address=mailaddr, primary='true'))
