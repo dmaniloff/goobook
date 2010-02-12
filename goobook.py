@@ -24,6 +24,8 @@ class GooBook(object):
         self.load()
         match = re.compile(query, re.I).search
         resultados = dict([(k,v) for k,v in self.addrbk.items() if match(k) or match(v)])
+        # mutt's query_command expects the first line to be a message,
+        # which it discards.
         print "\n"
         for (k,v) in resultados.items():
             print "%s\t%s"%(k,v)
@@ -41,7 +43,7 @@ class GooBook(object):
             #  simplifico el feed, con formato 'titulo'\t'email' sin ''
         else:
             stamp, self.addrbk = pickle.load(picklefile) #optimizar
-            if (datetime.now() - stamp).days:
+            if (datetime.now() - stamp).days > CACHE_EXPIRY_DAYS:
                 self.fetch()
         finally:
             self.store()
@@ -106,14 +108,21 @@ class GooBook(object):
         contact_entry = client.CreateContact(new_contact)
         print contact_entry
         
+def usage():
+    print """\
+Usage: goobook.py <command> [<arg>]
+Commands:
+   reload
+   query <name>
+   add <mail.at.stdin>\
+"""
+    sys.exit(1)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print "Usage: python goobook.py query <name> or python goobook.py add <mail.at.stdin>>"
-        sys.exit(1)
-
+        usage()
     try:
-        from settings import USERNAME, PASSWORD, MAX_RESULTS, CACHE_FILENAME
+        from settings import USERNAME, PASSWORD, MAX_RESULTS, CACHE_FILENAME, CACHE_EXPIRY_DAYS
     except ImportError:
         raise RuntimeError("Please create a valid settings.py"
                            " (look at settings_example.py for inspiration)")
@@ -123,12 +132,12 @@ if __name__ == '__main__':
     goobk = GooBook(USERNAME, PASSWORD, MAX_RESULTS, CACHE_FILENAME)
     if sys.argv[1] == "query":
         if len(sys.argv) < 3:
-            print "Usage: python goobook.py query <name> or python goobook.py add <mail.at.stdin>>"
-            sys.exit(1)
+            usage()
         goobk.query(sys.argv[2])
     elif sys.argv[1] == "add":
         goobk.add()
+    elif sys.argv[1] == "reload":
+        goobk.fetch()
+        goobk.store()
     else:
-            print "Usage: python goobook.py query <name> or python goobook.py add <mail.at.stdin>>"
-        sys.exit(1)
-        
+        usage()
