@@ -10,20 +10,34 @@ import sys
 import os
 import re
 import pickle
+import ConfigParser
 from datetime import datetime
+from os.path import realpath, expanduser
 
 from gdata.contacts.service import ContactsService, ContactsQuery
 from gdata.contacts import ContactEntry, Email
 import atom
 
+CONFIG_PATH = '~/.goobookrc'
+CONFIG_EXAMPLE = '''[DEFAULT]
+username: user@gmail.com
+password: top secret
+max_results: 9999
+cache_filename: ~/.goobook_cache
+cache_expiry_days: 1
+'''
+
 class GooBook(object):
-    def __init__ (self, username, password, max_results, cache_filename,
-                  cache_expiry_days):
-        self.username = username
-        self.password = password
-        self.max_results = max_results
-        self.cache_filename = cache_filename
-        self.cache_expiry_days = cache_expiry_days
+    '''This class can't be used as a library as it looks now, it user sys.stdin
+    print and sys.exit().'''
+    def __init__ (self, config):
+        self.username = config.get('DEFAULT', 'username')
+        self.password = config.get('DEFAULT', 'password')
+        self.max_results = config.get('DEFAULT', 'max_results')
+        self.cache_filename = config.get('DEFAULT', 'cache_filename')
+        self.cache_filename = realpath(expanduser(self.cache_filename))
+        self.cache_expiry_days = config.get('DEFAULT', 'cache_expiry_days')
+
         self.addrbk = {}
 
     def query(self, query):
@@ -135,16 +149,14 @@ Commands:
 def main():
     if len(sys.argv) < 2:
         usage()
+    config = ConfigParser.SafeConfigParser()
     try:
-        from settings import USERNAME, PASSWORD, MAX_RESULTS, CACHE_FILENAME, CACHE_EXPIRY_DAYS
-    except ImportError:
-        raise RuntimeError("Please create a valid settings.py"
-                           " (look at settings_example.py for inspiration)")
-    else:
-        CACHE_FILENAME = os.path.realpath(os.path.expanduser(CACHE_FILENAME))
-
-    goobk = GooBook(USERNAME, PASSWORD, MAX_RESULTS, CACHE_FILENAME,
-                    CACHE_EXPIRY_DAYS)
+        config.readfp(open(os.path.expanduser(CONFIG_PATH)))
+    except (IOError, ConfigParser.ParsingError):
+        print >> sys.stderr, "Failed to read %s\n\nExample:\n\n%s" % (
+            CONFIG_PATH, CONFIG_EXAMPLE)
+        sys.exit(1)
+    goobk = GooBook(config)
     if sys.argv[1] == "query":
         if len(sys.argv) < 3:
             usage()
