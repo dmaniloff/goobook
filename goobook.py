@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# vim: fileencoding=UTF-8 filetype=python ff=unix expandtab sw=4 sts=4 tw=120
+# maintainer: Christer Sjöholm -- goobook AT furuvik DOT net
 '''
 The idea is make an interface to google contacts that mimics the behaviour of
 abook for mutt. It's developed in python and uses the fine
@@ -28,7 +30,7 @@ cache_expiry_hours: 1
 
 class GooBook(object):
     '''This class can't be used as a library as it looks now, it uses sys.stdin
-    print and sys.exit().'''
+       print and sys.exit().'''
     def __init__ (self, config):
         self.username = config.get('DEFAULT', 'username')
         self.password = config.get('DEFAULT', 'password')
