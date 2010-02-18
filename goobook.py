@@ -134,7 +134,7 @@ class GooBook(object):
         if mailaddr.endswith(">"):
             mailaddr = mailaddr[:-1]
         #and the rest as name
-        name = " ".join(els[:-1])
+        name = " ".join(els[:-1]).strip('"')
         #save to contacts
         client = ContactsService()
         client.ssl = True
