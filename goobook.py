@@ -94,12 +94,16 @@ class GooBook(object):
                     result.append(contact)
                     break
 
+        #sort contacts
+        result.sort(key=lambda c: c['name'])
+
         # mutt's query_command expects the first line to be a message,
         # which it discards.
         print "\n",
         for contact in result:
-            if 'email' in contact:
-                for email in contact['email'].split(','):
+            if 'email' in contact and contact['email'].strip():
+                emailaddrs = sorted(contact['email'].split(','))
+                for email in emailaddrs:
                     print "%s\t%s" % (email, contact['name'])
 
     def load(self):
