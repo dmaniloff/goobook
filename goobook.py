@@ -31,9 +31,12 @@ import time
 import ConfigParser
 from os.path import realpath, expanduser
 
-from gdata.contacts.service import ContactsService, ContactsQuery
-from gdata.contacts import ContactEntry, Email
-import atom
+from gdata.contacts.client import ContactsClient, ContactsQuery
+from gdata.contacts.data import ContactEntry
+from gdata.data import Email, Name, FullName
+
+#from gdata.contacts.service import ContactsService, ContactsQuery
+#import atom
 
 CONFIG_PATH = '~/.goobookrc'
 CONFIG_EXAMPLE = '''[DEFAULT]
@@ -55,6 +58,12 @@ class GooBook(object):
         self.cache_filename = realpath(expanduser(self.cache_filename))
         self.cache_expiry_hours = config.get('DEFAULT', 'cache_expiry_hours')
         self.contacts = [] #[{fieldname: value}]
+
+    def __get_client(self):
+        client = ContactsClient()
+        client.ssl = True
+        client.ClientLogin(email=self.username, password=self.password, service='cp', source='goobook')
+        return client
 
     def query(self, query):
         """
@@ -101,14 +110,13 @@ class GooBook(object):
         Actually go out on the wire and fetch the addressbook.
 
         """
-        client = ContactsService()
-        client.ssl = True
-        client.ClientLogin(self.username, self.password)
-        query = ContactsQuery()
-        query.max_results = self.max_results
-        feed = client.GetContactsFeed(query.ToUri())
+
+        client = self.__get_client()
+        query = ContactsQuery(max_results=self.max_results)
+        contacts_ = client.get_contacts(query=query)
         contacts = []
-        for ent in feed.entry:
+        for ent in contacts_.entry:
+            print ent
             contact = {}
             contact['name'] = ent.title.text
             emails = [email.address for email in ent.email]
@@ -152,13 +160,11 @@ class GooBook(object):
         #and the rest as name
         name = " ".join(els[:-1]).strip('"')
         #save to contacts
-        client = ContactsService()
-        client.ssl = True
-        client.ClientLogin(self.username, self.password)
-        new_contact = ContactEntry(title=atom.Title(text=name))
-        new_contact.email.append(Email(address=mailaddr, primary='true'))
-        contact_entry = client.CreateContact(new_contact)
-        print contact_entry
+        client = self.__get_client()
+        new_contact = ContactEntry(name=Name(full_name=FullName(text=name)))
+        new_contact.email.append(Email(address=mailaddr, rel='http://schemas.google.com/g/2005#home', primary='true'))
+        created = client.create_contact(new_contact)
+        print 'Created contact:', name, mailaddr
 
 class AbookDatabase(object):
     '''Parse and generate Abook compatible addressbook files.
