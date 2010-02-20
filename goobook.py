@@ -42,18 +42,19 @@ from gdata.data import Email, Name, FullName
 
 CONFIG_PATH = '~/.goobookrc'
 CONFIG_EXAMPLE = '''[DEFAULT]
-username: user@gmail.com
+email: user@gmail.com
 password: top secret
-max_results: 9999
-cache_filename: ~/.goobook_cache
-cache_expiry_hours: 1
+#The following are optional, defaults are shown
+;max_results: 9999
+;cache_filename: ~/.goobook_cache
+;cache_expiry_hours: 24
 '''
 
 class GooBook(object):
     '''This class can't be used as a library as it looks now, it uses sys.stdin
        print and sys.exit().'''
     def __init__ (self, config):
-        self.username = config.get('DEFAULT', 'username')
+        self.email = config.get('DEFAULT', 'email')
         self.password = config.get('DEFAULT', 'password')
         self.max_results = config.get('DEFAULT', 'max_results')
         self.cache_filename = config.get('DEFAULT', 'cache_filename')
@@ -64,7 +65,7 @@ class GooBook(object):
     def __get_client(self):
         client = ContactsClient()
         client.ssl = True
-        client.ClientLogin(email=self.username, password=self.password, service='cp', source='goobook')
+        client.ClientLogin(email=self.email, password=self.password, service='cp', source='goobook')
         return client
 
     def query(self, query):
@@ -118,7 +119,6 @@ class GooBook(object):
         contacts_ = client.get_contacts(query=query)
         contacts = []
         for ent in contacts_.entry:
-            print ent
             contact = {}
             contact['name'] = ent.title.text
             emails = [email.address for email in ent.email]
@@ -250,7 +250,11 @@ Commands:
 def main():
     if len(sys.argv) < 2:
         usage()
-    config = ConfigParser.SafeConfigParser()
+    config = ConfigParser.SafeConfigParser(defaults={
+        'max_results': '9999',
+        'cache_filename': '~/.goobook_cache',
+        'cache_expiry_hours': '24',
+        })
     try:
         config.readfp(open(os.path.expanduser(CONFIG_PATH)))
     except (IOError, ConfigParser.ParsingError):
