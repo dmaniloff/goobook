@@ -24,6 +24,8 @@ abook for mutt. It's developed in python and uses the fine
 google data api (gdata).
 '''
 
+import codecs
+import locale
 import sys
 import os
 import re
@@ -186,7 +188,7 @@ class AbookDatabase(object):
         ''' read the abook file and return a list of its sections.
             [{section: {fieldname: value}}]'''
         sections = {}# {sectionname: {fieldname: value}}
-        with open(self.filename) as inp:
+        with codecs.open(self.filename, encoding=locale.getpreferredencoding()) as inp:
             section = None
             for line in inp:
                 line = line.strip()
@@ -221,7 +223,7 @@ class AbookDatabase(object):
 
     def write(self, sections):
         '''sections is a {sectionname: {fieldname: value}}'''
-        with open(self.filename, 'w') as out:
+        with codecs.open(self.filename, 'w', encoding=locale.getpreferredencoding()) as out:
             out.write('[format]\n'
                       'program=goobook\n'
                       'version=2.0.0\n\n')
