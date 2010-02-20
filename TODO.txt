@@ -1,4 +1,3 @@
-- netrc support
 - chain search apps
 - result sorting
 - check handling of MIME encoded from:

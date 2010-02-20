@@ -31,6 +31,7 @@ import os
 import re
 import time
 import ConfigParser
+from netrc import netrc
 from os.path import realpath, expanduser
 
 from gdata.contacts.client import ContactsClient, ContactsQuery
@@ -42,6 +43,7 @@ from gdata.data import Email, Name, FullName
 
 CONFIG_PATH = '~/.goobookrc'
 CONFIG_EXAMPLE = '''[DEFAULT]
+#If not given here, email and password is taken from .netrc using host=google.com
 email: user@gmail.com
 password: top secret
 #The following are optional, defaults are shown
@@ -63,6 +65,17 @@ class GooBook(object):
         self.contacts = [] #[{fieldname: value}]
 
     def __get_client(self):
+        if not self.email or not self.password:
+            auth = netrc().authenticators('google.com')
+            if auth:
+                (login, account, password) = auth
+                if not self.email:
+                    self.email = login
+                if not self.password:
+                    self.password = password
+        if not self.email or not self.password:
+            print >> sys.stderr, "Missing email or password"
+            sys.exit(1)
         client = ContactsClient()
         client.ssl = True
         client.ClientLogin(email=self.email, password=self.password, service='cp', source='goobook')
@@ -169,7 +182,7 @@ class GooBook(object):
         client = self.__get_client()
         new_contact = ContactEntry(name=Name(full_name=FullName(text=name)))
         new_contact.email.append(Email(address=mailaddr, rel='http://schemas.google.com/g/2005#home', primary='true'))
-        created = client.create_contact(new_contact)
+        client.create_contact(new_contact)
         print 'Created contact:', name, mailaddr
 
 class AbookDatabase(object):
@@ -254,11 +267,14 @@ Commands:
 def main():
     if len(sys.argv) < 2:
         usage()
-    config = ConfigParser.SafeConfigParser(defaults={
+    config_defaults = {
+        'email': '',
+        'password': '',
         'max_results': '9999',
         'cache_filename': '~/.goobook_cache',
         'cache_expiry_hours': '24',
-        })
+        }
+    config = ConfigParser.SafeConfigParser(defaults=config_defaults)
     try:
         config.readfp(open(os.path.expanduser(CONFIG_PATH)))
     except (IOError, ConfigParser.ParsingError):
