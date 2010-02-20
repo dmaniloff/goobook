@@ -11,7 +11,7 @@ setup(name='goobook',
       version = '1.0',
       description = 'Search your google contacts from mutt.',
       long_description=open('README.txt').read(),
-      maintainer = 'Christer Sjöholm',
+      maintainer = u'Christer Sjöholm',
       maintainer_email = 'goobook@furuvik.net',
       url = 'http://goobook.googlecode.com/',
 
