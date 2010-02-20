@@ -25,7 +25,7 @@ setup(name='goobook',
         Topic :: Communications :: Email :: Address Book
         """.splitlines() if f.strip()],
       license = 'GPLv3',
-      requires = ['gdata (>=2.0.7)'],
+      install_requires = ['gdata>=2.0.7'],
       py_modules = ['goobook'],
       entry_points = {'console_scripts': [ 'goobook = goobook:main']}
      )
