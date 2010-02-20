@@ -123,6 +123,8 @@ class GooBook(object):
             contact['name'] = ent.title.text
             emails = [email.address for email in ent.email]
             contact['email'] = ','.join(emails)
+            if ent.nickname:
+                contact['nick'] = ent.nickname.text
             contacts.append(contact)
         self.contacts = contacts
 
