@@ -25,6 +25,7 @@ google data api (gdata).
 '''
 
 import codecs
+import email.header
 import locale
 import sys
 import os
@@ -33,7 +34,6 @@ import time
 import ConfigParser
 from netrc import netrc
 from os.path import realpath, expanduser
-
 from gdata.contacts.client import ContactsClient, ContactsQuery
 from gdata.contacts.data import ContactEntry
 from gdata.data import Email, Name, FullName
@@ -163,19 +163,11 @@ class GooBook(object):
         if from_line == "":
             print "Not a valid mail file!"
             sys.exit(2)
-        #In a line like
-        #From: John Doe <john@doe.com>
-        els = from_line.split()
-        #Drop "From: "
-        del els[0]
-        #get the last element as mail
-        mailaddr = els[-1]
-        if mailaddr.startswith("<"):
-            mailaddr = mailaddr[1:]
-        if mailaddr.endswith(">"):
-            mailaddr = mailaddr[:-1]
-        #and the rest as name
-        name = " ".join(els[:-1]).strip('"')
+        #Parse From: line
+        #Take care of non ascii header
+        from_line = unicode(email.header.make_header(email.header.decode_header(from_line)))
+        #Parse the From line
+        (name, mailaddr) = email.utils.parseaddr(from_line)
         if not name:
             name = mailaddr
         #save to contacts
