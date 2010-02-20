@@ -161,6 +161,8 @@ class GooBook(object):
             mailaddr = mailaddr[:-1]
         #and the rest as name
         name = " ".join(els[:-1]).strip('"')
+        if not name:
+            name = mailaddr
         #save to contacts
         client = self.__get_client()
         new_contact = ContactEntry(name=Name(full_name=FullName(text=name)))
