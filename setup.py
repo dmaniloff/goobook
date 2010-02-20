@@ -8,20 +8,23 @@ use_setuptools()
 from setuptools import setup
 
 setup(name='goobook',
-      version = '0.9.0',
+      version = '1.0',
       description = 'Search your google contacts from mutt.',
+      long_description=open('README.txt').read(),
       maintainer = 'Christer Sjöholm',
       maintainer_email = 'goobook@furuvik.net',
       url = 'http://goobook.googlecode.com/',
-      classifiers = ['Development Status :: 4 - Beta',
-                     'Operating System :: OS Independent',
-                     'Environment :: Console',
-                     'Intended Audience :: End Users/Desktop',
-                     'License :: OSI Approved :: GNU General Public License (GPL)',
-                     'Programming Language :: Python',
-                     'Programming Language :: Python :: 2.6',
-                     'Topic :: Communications :: Email :: Address Book',
-                    ],
+
+     classifiers = [f.strip() for f in """
+        Development Status :: 5 - Production/Stable
+        Environment :: Console
+        Operating System :: OS Independent
+        Programming Language :: Python
+        Programming Language :: Python :: 2.6
+        Intended Audience :: End Users/Desktop
+        License :: OSI Approved :: GNU General Public License (GPL)
+        Topic :: Communications :: Email :: Address Book
+        """.splitlines() if f.strip()],
       license = 'GPLv3',
       requires = ['gdata (>=2.0.7)'],
       py_modules = ['goobook'],

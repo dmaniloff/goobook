@@ -1,0 +1,31 @@
+=======
+CHANGES
+=======
+
+---------------
+1.0, 2010-02-20
+---------------
+
+* Issue 2: BadAuthentication error can create a problematic cache file so
+  subsequent runs fail
+* Issue 6: cache management needs improvements
+  - reload, force refresh command
+  - configurable cache expiry time
+* Issue 7: Should probably set safe permissions on settings.pyc
+* Issue 8: 'add' doesn't strip extraneous quotation marks
+* Issue 9: Indentation error when run without arguments
+* Issue 10: Query doesn't browse nicknames
+* New abook compatible cache format.
+* sort results
+* Using SSL
+* New config format
+* .netrc support
+* Supports adding non-ASCII From: headers.
+
+--------------
+r8, 2009-12-10
+--------------
+
+...
+
+// vim: fileencoding=UTF=8 textwidth=79
