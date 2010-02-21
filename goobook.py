@@ -281,7 +281,7 @@ def main():
     if sys.argv[1] == "query":
         if len(sys.argv) < 3:
             usage()
-        goobk.query(sys.argv[2])
+        goobk.query(sys.argv[2].decode(locale.getpreferredencoding()))
     elif sys.argv[1] == "add":
         goobk.add()
     elif sys.argv[1] == "reload":
