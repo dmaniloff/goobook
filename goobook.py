@@ -52,6 +52,8 @@ password: top secret
 ;cache_expiry_hours: 24
 '''
 
+ENCODING = locale.getpreferredencoding()
+
 class GooBook(object):
     '''This class can't be used as a library as it looks now, it uses sys.stdin
        print and sys.exit().'''
@@ -74,7 +76,7 @@ class GooBook(object):
                 if not self.password:
                     self.password = password
         if not self.email or not self.password:
-            print >> sys.stderr, "Missing email or password"
+            print >> sys.stderr, "ERROR: Missing email or password"
             sys.exit(1)
         client = ContactsClient()
         client.ssl = True
@@ -101,10 +103,12 @@ class GooBook(object):
         # which it discards.
         print "\n",
         for contact in result:
+            name = contact['name'].encode(ENCODING)
             if 'email' in contact and contact['email'].strip():
                 emailaddrs = sorted(contact['email'].split(','))
                 for email in emailaddrs:
-                    print "%s\t%s" % (email, contact['name'])
+                    email = email.encode(ENCODING)
+                    print "%s\t%s" % (email, name)
 
     def load(self):
         """
@@ -179,7 +183,7 @@ class GooBook(object):
         new_contact = ContactEntry(name=Name(full_name=FullName(text=name)))
         new_contact.email.append(Email(address=mailaddr, rel='http://schemas.google.com/g/2005#home', primary='true'))
         client.create_contact(new_contact)
-        print 'Created contact:', name, mailaddr
+        print 'Created contact:', name.encode(ENCODING), mailaddr.encode(ENCODING)
 
 class AbookDatabase(object):
     '''Parse and generate Abook compatible addressbook files.
@@ -201,7 +205,7 @@ class AbookDatabase(object):
         ''' read the abook file and return a list of its sections.
             [{section: {fieldname: value}}]'''
         sections = {}# {sectionname: {fieldname: value}}
-        with codecs.open(self.filename, encoding=locale.getpreferredencoding()) as inp:
+        with codecs.open(self.filename, encoding=ENCODING) as inp:
             section = None
             for line in inp:
                 line = line.strip()
@@ -236,7 +240,7 @@ class AbookDatabase(object):
 
     def write(self, sections):
         '''sections is a {sectionname: {fieldname: value}}'''
-        with codecs.open(self.filename, 'w', encoding=locale.getpreferredencoding()) as out:
+        with codecs.open(self.filename, 'w', encoding=ENCODING) as out:
             out.write('[format]\n'
                       'program=goobook\n'
                       'version=2.0.0\n\n')
@@ -281,7 +285,7 @@ def main():
     if sys.argv[1] == "query":
         if len(sys.argv) < 3:
             usage()
-        goobk.query(sys.argv[2].decode(locale.getpreferredencoding()))
+        goobk.query(sys.argv[2].decode(ENCODING))
     elif sys.argv[1] == "add":
         goobk.add()
     elif sys.argv[1] == "reload":
