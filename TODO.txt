@@ -1,1 +1,3 @@
 - chain search apps
+- Searching for not-ASCII strings
+- Non-ASCII output when used embedded.

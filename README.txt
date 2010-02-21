@@ -89,6 +89,10 @@ Set in your .muttrc file::
 
 to query address book. (Normally bound to "Q" key.)
 
+If you want to be able to use <tab> to complete email addresses instead of Ctrl-t add this:
+
+    bind editor <Tab> complete-query
+
 To add email addresses (with "a" key normally bound to create-alias command)::
 
     macro index,pager a "<pipe-message>goobook add<return>" "add the sender address to Google contacts"
