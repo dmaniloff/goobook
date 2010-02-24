@@ -23,10 +23,16 @@ tarball.
 easy_install or pip
 ===================
 
+This is the recommended way to install goobook.
+If installing this way you will not need to download the source manually.
+
 Run easy_install or pip::
 
     $ easy_install -U goobook
     $ pip install goobook
+
+easy_install is part of setuptools which should come with most distributions.
+
 
 Source installation
 ===================
@@ -35,28 +41,29 @@ Download the source tarball, uncompress it, then run the install command::
 
     $ tar -xzvf goobook-*.tar.gz
     $ cd goobook-*
-    $ python setup.py install
+    $ sudo python ./setup.py install
 
 Upgrading
 =========
 
-If you are upgrading from a pre 1.0 version you will have to remove the old cachefile and create
-a new configuration.
+If you are upgrading from a pre 1.0 version you will have to remove the old
+cachefile and create a new configuration.
 
 -----------------------------
 Configure
 -----------------------------
 
-For most users it will be enough to add an entry to your .netrc::
+For most users it will be enough to add an entry to your ~/.netrc::
 
     machine google.com
       login your@google.email
       password secret
 
-To get access too more settings you can create a .goobookrc in your home directory::
+To get access too more settings you can create ~/.goobookrc::
 
     [DEFAULT]
-    #If not given here, email and password is taken from .netrc using host=google.com
+    #If not given here, email and password is taken from .netrc using
+    #machine  google.com
     email: user@gmail.com
     password: top secret
     #The following are optional, defaults are shown
