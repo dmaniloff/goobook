@@ -3,12 +3,15 @@ CHANGES
 =======
 
 ---------------
-1.1, 2010-02-24
+1.1, 2010-02-xx
 ---------------
 
 * Use current locale to decode queries.
 * Encode printed text using current locale.
-* Some documentation updates.
+* Added option to specify different configfile.
+* Some documentation/help updates.
+* The .goobookrc is now really optional.
+* Added config-template command.
 
 ---------------
 1.0, 2010-02-20

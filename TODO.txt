@@ -1,3 +1,1 @@
 - chain search apps
-- Nicer output for: gdata.client.BadAuthentication: Incorrect username or password
-

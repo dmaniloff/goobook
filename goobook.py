@@ -45,11 +45,13 @@ from gdata.data import Email, Name, FullName
 #import atom
 
 CONFIG_FILE = '~/.goobookrc'
-CONFIG_EXAMPLE = '''[DEFAULT]
+CONFIG_TEMPLATE = '''\
+# "#" or ";" at the start of a line makes it a comment.
+[DEFAULT]
 # If not given here, email and password is taken from .netrc using
 # machine google.com
-email: user@gmail.com
-password: top secret
+;email: user@gmail.com
+;password: top secret
 # The following are optional, defaults are shown
 ;max_results: 9999
 ;cache_filename: ~/.goobook_cache
@@ -268,9 +270,8 @@ def read_config(config_file):
             parser = ConfigParser.SafeConfigParser()
             parser.readfp(open(os.path.expanduser(config_file)))
             config.update(dict(parser.items('DEFAULT', raw=True)))
-        except (IOError, ConfigParser.ParsingError):
-            print >> sys.stderr, "Failed to read %s\n\nExample:\n\n%s" % (
-                config_file, CONFIG_EXAMPLE)
+        except (IOError, ConfigParser.ParsingError), e:
+            print >> sys.stderr, "Failed to read configuration %s\n%s" % (config_file, e)
             sys.exit(1)
     if not config.get('email') or not config.get('password'):
         auth = netrc().authenticators('google.com')
@@ -293,9 +294,10 @@ def main():
     description = 'Search you Google contacts from mutt or the command-line.'
     epilog = '''\
 Commands:
-  add <mail.at.stdin>
-  reload
-  query <name>
+  add              Add the senders address to contacts, reads a mail from STDIN.
+  reload           Force reload of the cache.
+  query <query>    Search contacts using query (regex).
+  config-template  Prints a template for .goobookrc to STDOUT
 
 '''
     parser = MyParser(usage=usage, description=description, epilog=epilog)
@@ -319,6 +321,8 @@ Commands:
         elif cmd == "reload":
             goobk.fetch()
             goobk.store()
+        elif cmd == "config-template":
+            print CONFIG_TEMPLATE
         else:
             parser.error('Command not recognized: %s' % cmd)
     except gdata.client.BadAuthentication, e:
