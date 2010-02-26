@@ -8,7 +8,7 @@ use_setuptools()
 from setuptools import setup
 
 setup(name='goobook',
-      version = '1.0',
+      version = '1.1.dev1',
       description = 'Search your google contacts from mutt.',
       long_description=open('README.txt').read(),
       maintainer = u'Christer Sjöholm',

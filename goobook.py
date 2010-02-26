@@ -18,14 +18,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''
+'''\
 The idea is make an interface to google contacts that mimics the behaviour of
 abook for mutt. It's developed in python and uses the fine
 google data api (gdata).
 '''
 
-import codecs
 import email.header
+import json
 import locale
 import optparse
 import sys
@@ -70,99 +70,156 @@ class GooBook(object):
         self.cache_filename = config['cache_filename']
         self.cache_filename = realpath(expanduser(self.cache_filename))
         self.cache_expiry_hours = config['cache_expiry_hours']
-        self.contacts = [] #[{fieldname: value}]
+        self.__client = None
+        self.contacts = {}
+        ''' This is where all the contacts is stored
+        {'contacts': {contact_id: <contact>}
+         'groups': {'group': [contact_id] ]
+        }
+        <contact> is a {'name':'', 'email':''}
+        '''
 
     def __get_client(self):
         '''Login to Google and return a ContactsClient object.
+
         '''
-        if not self.email or not self.password:
-            print >> sys.stderr, "ERROR: Missing email or password"
-            sys.exit(1)
-        client = ContactsClient()
-        client.ssl = True
-        client.ClientLogin(email=self.email, password=self.password, service='cp', source='goobook')
-        return client
+        if not self.__client:
+            if not self.email or not self.password:
+                print >> sys.stderr, "ERROR: Missing email or password"
+                sys.exit(1)
+            client = ContactsClient()
+            client.ssl = True
+            client.ClientLogin(email=self.email, password=self.password, service='cp', source='goobook')
+            self.__client = client
+        return self.__client
+
+    def __query_contacts(self, query):
+        match = re.compile(query, re.I).search
+        for contact in self.contacts['contacts'].itervalues():
+            for value in contact.itervalues(): # TODO dont search ALL fields
+                if not value:
+                    pass
+                elif isinstance(value, basestring):
+                    if value and match(value):
+                        yield contact
+                        break
+                else: #value is list
+                    found_one = False
+                    for value2 in value:
+                        if value2 and match(value2):
+                            yield contact
+                            found_one = True
+                            break
+                    if found_one:
+                        break
+
+    def __query_groups(self, query):
+        match = re.compile(query, re.I).search
+        for (group_id, group_name) in self.contacts['groups'].iteritems():
+            if match(group_name):
+                yield (group_name, list(self.__get_group_contacts(group_id)))
 
     def query(self, query):
-        """
-        Do the query, and print it out in
+        """Do the query, and print it out in
+
         """
         self.load()
-        match = re.compile(query, re.I).search
-        result = []
-        for contact in self.contacts:
-            for value in contact.itervalues():
-                if value and match(value):
-                    result.append(contact)
-                    break
-
-        #sort contacts
-        result.sort(key=lambda c: c['name'])
-
+        #query contacts
+        matching_contacts = sorted(self.__query_contacts(query), key=lambda c: c['name'])
+        #query groups
+        matching_groups = sorted(self.__query_groups(query), key=lambda g: g[0])
         # mutt's query_command expects the first line to be a message,
         # which it discards.
         print "\n",
-        for contact in result:
-            name = contact['name'].encode(ENCODING)
-            if 'email' in contact and contact['email'].strip():
-                emailaddrs = sorted(contact['email'].split(','))
-                for email in emailaddrs:
-                    email = email.encode(ENCODING)
-                    print "%s\t%s" % (email, name)
+        for contact in matching_contacts:
+            if 'emails' in contact and contact['emails']:
+                emailaddrs = sorted(contact['emails'])
+                for emailaddr in emailaddrs:
+                    print (u'%s\t%s' % (emailaddr, contact['name'])).encode(ENCODING)
+        for group_name, contacts in matching_groups:
+            emails = ['%s <%s>' % (c['name'], c['emails'][0]) for c in contacts if c['emails']]
+            emails = ', '.join(emails)
+            if not emails:
+                continue
+            print (u'%s\t%s (group)' % (emails, group_name)).encode(ENCODING)
+
+    def __get_group_contacts(self, group_id):
+        for contact in self.contacts['contacts'].itervalues():
+            if group_id in contact['groups']:
+                yield contact
 
     def load(self):
-        """
-        Load the cached addressbook feed, or fetch it (again) if it is
+        """Load the cached addressbook feed, or fetch it (again) if it is
         old or missing or invalid or anyting
-        """
-        try:
-            abook = AbookDatabase(self.cache_filename)
-            self.contacts = list(abook.get_contacts())
-        except (IOError, AbookError):
-            self.fetch()
-            self.store()
-        else:
-            # if cache older than cache_expiry_hours
-            if ((time.time() - os.path.getmtime(self.cache_filename)) >
-                (self.cache_expiry_hours * 60 *60)):
-                self.fetch()
-                self.store()
-
-
-    def fetch(self):
-        """
-        Actually go out on the wire and fetch the addressbook.
 
         """
+        contacts = None
 
-        client = self.__get_client()
-        query = ContactsQuery(max_results=self.max_results)
-        contacts_ = client.get_contacts(query=query)
-        contacts = []
-        for ent in contacts_.entry:
-            contact = {}
-            contact['name'] = ent.title.text
-            emails = [email.address for email in ent.email]
-            contact['email'] = ','.join(emails)
-            if ent.nickname:
-                contact['nick'] = ent.nickname.text
-            contacts.append(contact)
+        # if cache older than cache_expiry_hours
+        if ((time.time() - os.path.getmtime(self.cache_filename)) >
+            (self.cache_expiry_hours * 60 *60)):
+            contacts = self.fetch()
+            self.store(contacts)
+        if not contacts:
+            try:
+                contacts = json.load(open(self.cache_filename))
+                if contacts.get('goobook_cache') != '1.1':
+                    contacts = None # Old cache format
+            except ValueError:
+                pass # Failed to read JSON file.
+        if not contacts:
+            contacts = self.fetch()
+            self.store(contacts)
+        if not contacts:
+            raise Exception('Failed to find any contacts') # TODO
         self.contacts = contacts
 
-    def store(self):
+
+    def fetch_contacts(self):
+        client = self.__get_client()
+        query = ContactsQuery(max_results=self.max_results)
+        entries = client.get_contacts(query=query).entry
+        return dict([self.__parse_contact(ent) for ent in entries])
+
+    @staticmethod
+    def __parse_contact(ent):
+        '''takes a gdata contact entry and returns a parsed contact.
+        on the form (contact_id, {fieldname:content})
+
+        '''
+        contact = {}
+        contact['name'] = ent.title.text
+        contact['emails'] = [emailent.address for emailent in ent.email]
+        if ent.nickname:
+            contact['nick'] = ent.nickname.text
+        contact['groups'] = [g.href for g in ent.group_membership_info]
+        return (ent.id.text, contact)
+
+    def fetch_contact_groups(self):
+        client = self.__get_client()
+        return dict([(g.id.text, g.title.text) for g in client.get_groups().entry])
+
+    def fetch(self):
+        """Actually go out on the wire and fetch the addressbook.
+        Returns the contacts data structure.
+
         """
-        Pickle the addressbook and a timestamp
+        contacts = self.fetch_contacts()
+        groups = self.fetch_contact_groups()
+        return {'contacts':contacts, 'groups':groups, 'goobook_cache': '1.1'}
+
+    def store(self, contacts):
+        """Pickle the addressbook and a timestamp
+
         """
-        if self.contacts: # never store a empty addressbook
-            abook = AbookDatabase(self.cache_filename)
-            abook.write_contacts(self.contacts)
+        if contacts: # never write a empty addressbook
+            json.dump(contacts, open(self.cache_filename, 'w'), indent=2)
 
     def add(self):
-        """
-        Add an address from From: field of a mail.
+        """Add an address from From: field of a mail.
         This assumes a single mail file is supplied through stdin.
-        """
 
+        """
         from_line = ""
         for line in sys.stdin:
             if line.startswith("From: "):
@@ -185,78 +242,10 @@ class GooBook(object):
         client.create_contact(new_contact)
         print 'Created contact:', name.encode(ENCODING), mailaddr.encode(ENCODING)
 
-class AbookDatabase(object):
-    '''Parse and generate Abook compatible addressbook files.
-
-    abooks implementation can be seen here:
-    http://abook.cvs.sourceforge.net/viewvc/abook/abook/database.c
-    '''
-
-    def __init__(self, filename):
-        self.filename = filename
-
-    def get_contacts(self):
-        '''yields a {fieldname: value} for each contact. '''
-        for (name, sect) in self.read().iteritems():
-            if name != 'format':
-                yield sect
-
-    def read(self):
-        ''' read the abook file and return a list of its sections.
-            [{section: {fieldname: value}}]'''
-        sections = {}# {sectionname: {fieldname: value}}
-        with codecs.open(self.filename, encoding=ENCODING) as inp:
-            section = None
-            for line in inp:
-                line = line.strip()
-                if not line or line[0] == '#':
-                    pass
-                elif line[0] == '[':
-                    sectionname = line.strip('[]')
-                    if sectionname in sections:
-                        raise AbookError('ERROR parsing %s, duplicate '
-                            'section: %s' % (self.filename, sectionname))
-                    sections[sectionname] = section = {}
-                elif section == None:
-                    raise AbookError('ERROR parsing %s, no section '
-                            'header.' % self.filename)
-                elif '=' in line:
-                    (name, value) = line.split('=', 1)
-                    if name in section:
-                        raise AbookError('ERROR parsing %s, duplicate '
-                            'field: %s' % (self.filename, name))
-                    section[name] = value
-                else:
-                    raise AbookError('Failed to parse line in %s: %s' %
-                                           (self.filename, repr(line)))
-        return sections
-
-    def write_contacts(self, contacts):
-        '''Write the list of contacts [{fieldname: value}] to disk'''
-        sections = {}
-        for (i, contact) in enumerate(contacts):
-            sections[i] = contact
-        self.write(sections)
-
-    def write(self, sections):
-        '''sections is a {sectionname: {fieldname: value}}'''
-        with codecs.open(self.filename, 'w', encoding=ENCODING) as out:
-            out.write('[format]\n'
-                      'program=goobook\n'
-                      'version=2.0.0\n\n')
-            for (sectionname, section) in sections.iteritems():
-                out.write('[%s]\n' % sectionname)
-                for (name, value) in section.iteritems():
-                    out.write('%s=%s\n' % (name, value))
-                out.write('\n')
-
-class AbookError(Exception):
-    '''Exception thrown when failing to parse a abook file.'''
-    pass
-
 def read_config(config_file):
-    ''' Reads the ~/.goobookrc and ~/.netrc.
-        returns the configuration as a dictionary.
+    '''Reads the ~/.goobookrc and ~/.netrc.
+    returns the configuration as a dictionary.
+
     '''
     config = { # Default values
         'email': '',
@@ -284,9 +273,7 @@ def read_config(config_file):
                 config['password'] = password
     return config
 
-
 def main():
-
     class MyParser(optparse.OptionParser):
         def format_epilog(self, formatter):
             return self.epilog
@@ -319,8 +306,7 @@ Commands:
         elif cmd == "add":
             goobk.add()
         elif cmd == "reload":
-            goobk.fetch()
-            goobk.store()
+            goobk.store(goobk.fetch())
         elif cmd == "config-template":
             print CONFIG_TEMPLATE
         else:

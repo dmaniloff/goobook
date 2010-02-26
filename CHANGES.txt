@@ -12,6 +12,8 @@ CHANGES
 * Some documentation/help updates.
 * The .goobookrc is now really optional.
 * Added config-template command.
+* Added support for contact groups.
+* New cache format, no longer abook compatible (JSON).
 
 ---------------
 1.0, 2010-02-20
