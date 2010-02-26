@@ -43,10 +43,11 @@ from gdata.data import Email, Name, FullName
 
 CONFIG_PATH = '~/.goobookrc'
 CONFIG_EXAMPLE = '''[DEFAULT]
-#If not given here, email and password is taken from .netrc using host=google.com
+# If not given here, email and password is taken from .netrc using
+# machine google.com
 email: user@gmail.com
 password: top secret
-#The following are optional, defaults are shown
+# The following are optional, defaults are shown
 ;max_results: 9999
 ;cache_filename: ~/.goobook_cache
 ;cache_expiry_hours: 24
@@ -58,23 +59,17 @@ class GooBook(object):
     '''This class can't be used as a library as it looks now, it uses sys.stdin
        print and sys.exit().'''
     def __init__ (self, config):
-        self.email = config.get('DEFAULT', 'email')
-        self.password = config.get('DEFAULT', 'password')
-        self.max_results = config.get('DEFAULT', 'max_results')
-        self.cache_filename = config.get('DEFAULT', 'cache_filename')
+        self.email = config['email']
+        self.password = config['password']
+        self.max_results = config['max_results']
+        self.cache_filename = config['cache_filename']
         self.cache_filename = realpath(expanduser(self.cache_filename))
-        self.cache_expiry_hours = config.get('DEFAULT', 'cache_expiry_hours')
+        self.cache_expiry_hours = config['cache_expiry_hours']
         self.contacts = [] #[{fieldname: value}]
 
     def __get_client(self):
-        if not self.email or not self.password:
-            auth = netrc().authenticators('google.com')
-            if auth:
-                (login, account, password) = auth
-                if not self.email:
-                    self.email = login
-                if not self.password:
-                    self.password = password
+        '''Login to Google and return a ContactsClient object.
+        '''
         if not self.email or not self.password:
             print >> sys.stderr, "ERROR: Missing email or password"
             sys.exit(1)
@@ -264,23 +259,42 @@ Commands:
 """
     sys.exit(1)
 
-def main():
-    if len(sys.argv) < 2:
-        usage()
-    config_defaults = {
+def read_config():
+    ''' Reads the ~/.goobookrc and ~/.netrc.
+        returns the configuration as a dictionary.
+    '''
+    config = { # Default values
         'email': '',
         'password': '',
         'max_results': '9999',
         'cache_filename': '~/.goobook_cache',
         'cache_expiry_hours': '24',
         }
-    config = ConfigParser.SafeConfigParser(defaults=config_defaults)
-    try:
-        config.readfp(open(os.path.expanduser(CONFIG_PATH)))
-    except (IOError, ConfigParser.ParsingError):
-        print >> sys.stderr, "Failed to read %s\n\nExample:\n\n%s" % (
-            CONFIG_PATH, CONFIG_EXAMPLE)
-        sys.exit(1)
+    if os.path.lexists(CONFIG_PATH):
+        try:
+            configfile = ConfigParser.SafeConfigParser()
+            configfile.readfp(open(os.path.expanduser(CONFIG_PATH)))
+            config.update(dict(configfile.items('DEFAULT', raw=True)))
+        except (IOError, ConfigParser.ParsingError):
+            print >> sys.stderr, "Failed to read %s\n\nExample:\n\n%s" % (
+                CONFIG_PATH, CONFIG_EXAMPLE)
+            sys.exit(1)
+    if not config.get('email') or not config.get('password'):
+        auth = netrc().authenticators('google.com')
+        if auth:
+            login = auth[0]
+            password = auth[2]
+            if not config.get('email'):
+                config['email'] = login
+            if not config.get('password'):
+                config['password'] = password
+    return config
+
+
+def main():
+    if len(sys.argv) < 2:
+        usage()
+    config = read_config()
     goobk = GooBook(config)
     if sys.argv[1] == "query":
         if len(sys.argv) < 3:

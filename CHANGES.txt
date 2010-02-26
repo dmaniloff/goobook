@@ -3,6 +3,14 @@ CHANGES
 =======
 
 ---------------
+1.1, 2010-02-24
+---------------
+
+* Use current locale to decode queries.
+* Encode printed text using current locale.
+* Some documentation updates.
+
+---------------
 1.0, 2010-02-20
 ---------------
 

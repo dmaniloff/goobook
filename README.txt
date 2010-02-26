@@ -62,14 +62,19 @@ For most users it will be enough to add an entry to your ~/.netrc::
 To get access too more settings you can create ~/.goobookrc::
 
     [DEFAULT]
-    #If not given here, email and password is taken from .netrc using
-    #machine  google.com
+    # If not given here, email and password is taken from .netrc using
+    # machine google.com
     email: user@gmail.com
     password: top secret
-    #The following are optional, defaults are shown
+    # The following are optional, defaults are shown
     max_results: 9999
     cache_filename: ~/.goobook_cache
     cache_expiry_hours: 24
+
+Proxy settings
+==============
+
+If you use a proxy you need to set the https_proxy environment variable.
 
 -----------------------------
 Usage
