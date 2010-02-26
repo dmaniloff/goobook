@@ -35,6 +35,8 @@ import time
 import ConfigParser
 from netrc import netrc
 from os.path import realpath, expanduser
+
+import gdata
 from gdata.contacts.client import ContactsClient, ContactsQuery
 from gdata.contacts.data import ContactEntry
 from gdata.data import Email, Name, FullName
@@ -306,19 +308,22 @@ Commands:
         sys.exit(1)
     config = read_config(options.config_file)
     goobk = GooBook(config)
-
-    cmd = args.pop(0)
-    if cmd == "query":
-        if len(args) != 1:
-            parser.error("incorrect number of arguments")
-        goobk.query(args[0].decode(ENCODING))
-    elif cmd == "add":
-        goobk.add()
-    elif cmd == "reload":
-        goobk.fetch()
-        goobk.store()
-    else:
-        parser.error('Command not recognized: %s' % cmd)
+    try:
+        cmd = args.pop(0)
+        if cmd == "query":
+            if len(args) != 1:
+                parser.error("incorrect number of arguments")
+            goobk.query(args[0].decode(ENCODING))
+        elif cmd == "add":
+            goobk.add()
+        elif cmd == "reload":
+            goobk.fetch()
+            goobk.store()
+        else:
+            parser.error('Command not recognized: %s' % cmd)
+    except gdata.client.BadAuthentication, e:
+        print >> sys.stderr, e # Incorrect username or password
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
