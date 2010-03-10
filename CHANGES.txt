@@ -3,7 +3,7 @@ CHANGES
 =======
 
 ---------------
-1.1, 2010-02-xx
+1.1, 2010-03-10
 ---------------
 
 * Use current locale to decode queries.

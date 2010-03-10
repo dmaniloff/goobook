@@ -6,12 +6,36 @@ from distribute_setup import use_setuptools
 use_setuptools()
 
 from setuptools import setup
+class UltraMagicString(object):
+    ''' Stolen from http://stackoverflow.com/questions/1162338/whats-the-right-way-to-use-unicode-metadata-in-setup-py
+
+    Catch-22:
+    - if I return Unicode, python setup.py --long-description as well
+      as python setup.py upload fail with a UnicodeEncodeError
+    - if I return UTF-8 string, python setup.py sdist register
+      fails with an UnicodeDecodeError
+    '''
+
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return self.value
+
+    def __unicode__(self):
+        return self.value.decode('UTF-8')
+
+    def __add__(self, other):
+        return UltraMagicString(self.value + str(other))
+
+    def split(self, *args, **kw):
+        return self.value.split(*args, **kw)
 
 setup(name='goobook',
-      version = '1.1.dev1',
+      version = '1.1',
       description = 'Search your google contacts from mutt.',
-      long_description=open('README.txt').read(),
-      maintainer = u'Christer Sjöholm',
+      long_description=UltraMagicString(open('README.txt').read()),
+      maintainer = UltraMagicString('Christer Sjöholm'),
       maintainer_email = 'goobook@furuvik.net',
       url = 'http://goobook.googlecode.com/',
       classifiers = [f.strip() for f in """
