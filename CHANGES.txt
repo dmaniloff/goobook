@@ -12,7 +12,7 @@ CHANGES
 * Some documentation/help updates.
 * The .goobookrc is now really optional.
 * Added config-template command.
-* Added support for contact groups.
+* Issue 13: Added support for contact groups.
 * New cache format, no longer abook compatible (JSON).
 
 ---------------
