@@ -96,7 +96,8 @@ class GooBook(object):
     def __query_contacts(self, query):
         match = re.compile(query, re.I).search
         for contact in self.contacts['contacts'].itervalues():
-            for value in contact.itervalues(): # TODO don't search ALL fields
+            for field in ('name', 'nick', 'emails'):
+                value = contact.get(field, None)
                 if not value:
                     pass
                 elif isinstance(value, basestring):

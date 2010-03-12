@@ -2,6 +2,14 @@
 CHANGES
 =======
 
+
+---------------
+1.2  2010-03-
+---------------
+
+* Issue 14: Only search in these fields: name, nick, emails, group name
+  In 1.1 the group URL was also searched, which gave false positives.
+
 ---------------
 1.1, 2010-03-10
 ---------------
