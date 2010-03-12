@@ -157,7 +157,7 @@ class GooBook(object):
         contacts = None
 
         # if cache older than cache_expiry_hours
-        if ((time.time() - os.path.getmtime(self.cache_filename)) >
+        if (not os.path.exists(self.cache_filename)) or ((time.time() - os.path.getmtime(self.cache_filename)) >
             (self.cache_expiry_hours * 60 *60)):
             contacts = self.fetch()
             self.store(contacts)
