@@ -1,6 +1,6 @@
-=============================================================
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 GooBook -- Access your Google contacts from the command line.
-=============================================================
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 .. contents:: **Table of Contents**
 
@@ -20,6 +20,7 @@ GooBook is only released as a source distribution.
 It can be installed using easy_install or pip or manually with the source
 tarball.
 
+===================
 easy_install or pip
 ===================
 
@@ -34,6 +35,7 @@ Run easy_install or pip::
 easy_install is part of setuptools which should come with most distributions.
 
 
+===================
 Source installation
 ===================
 
@@ -43,6 +45,7 @@ Download the source tarball, uncompress it, then run the install command::
     $ cd goobook-*
     $ sudo python ./setup.py install
 
+=========
 Upgrading
 =========
 
@@ -71,6 +74,7 @@ To get access too more settings you can create ~/.goobookrc::
     cache_filename: ~/.goobook_cache
     cache_expiry_hours: 24
 
+==============
 Proxy settings
 ==============
 
@@ -92,6 +96,7 @@ The cache is updated automatically according to the configuration but you can al
 
     $ goobook reload
 
+==========
 Mutt Setup
 ==========
 
