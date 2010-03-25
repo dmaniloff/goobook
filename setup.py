@@ -32,7 +32,7 @@ class UltraMagicString(object):
         return self.value.split(*args, **kw)
 
 setup(name='goobook',
-      version = '1.2',
+      version = '1.3',
       description = 'Search your google contacts from mutt.',
       long_description=UltraMagicString(open('README.txt').read()),
       maintainer = UltraMagicString('Christer Sjöholm'),
@@ -49,7 +49,9 @@ setup(name='goobook',
         Topic :: Communications :: Email :: Address Book
         """.splitlines() if f.strip()],
       license = 'GPLv3',
-      install_requires = ['gdata>=2.0.7'],
+      install_requires = [
+          'gdata>=2.0.7',
+          'simplejson>=2.1.0'],
       py_modules = ['goobook'],
       entry_points = {'console_scripts': [ 'goobook = goobook:main']}
      )

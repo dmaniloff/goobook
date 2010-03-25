@@ -25,7 +25,6 @@ google data api (gdata).
 '''
 
 import email.header
-import json
 import locale
 import optparse
 import sys
@@ -35,6 +34,12 @@ import time
 import ConfigParser
 from netrc import netrc
 from os.path import realpath, expanduser
+
+try:
+    import simplejson
+    json = simplejson # this hushes pyflakes
+except ImportError:
+    import json
 
 import gdata
 from gdata.contacts.client import ContactsClient, ContactsQuery

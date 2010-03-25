@@ -1,17 +1,18 @@
-=======
 CHANGES
 =======
 
+dev
+---
 
----------------
-1.2  2010-03-12
+* Python 2.5 compability
+
+1.2, 2010-03-12
 ---------------
 
-* Issue 14: Only search in these fields: name, nick, emails, group name
+* Issue 14: Only search in these fields: name, nick, emails, group name.
   In 1.1 the group URL was also searched, which gave false positives.
 * Auto create cache if it doesn't exist.
 
----------------
 1.1, 2010-03-10
 ---------------
 
@@ -24,7 +25,6 @@ CHANGES
 * Issue 13: Added support for contact groups.
 * New cache format, no longer abook compatible (JSON).
 
----------------
 1.0, 2010-02-20
 ---------------
 
@@ -44,10 +44,10 @@ CHANGES
 * .netrc support
 * Supports adding non-ASCII From: headers.
 
---------------
 r8, 2009-12-10
 --------------
 
 ...
 
 // vim: fileencoding=UTF=8 textwidth=79
+
