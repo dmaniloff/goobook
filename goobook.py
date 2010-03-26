@@ -26,6 +26,7 @@ google data api (gdata).
 
 import email.header
 import locale
+import logging
 import optparse
 import sys
 import os
@@ -46,8 +47,7 @@ from gdata.contacts.client import ContactsClient, ContactsQuery
 from gdata.contacts.data import ContactEntry
 from gdata.data import Email, Name, FullName
 
-#from gdata.contacts.service import ContactsService, ContactsQuery
-#import atom
+log = logging.getLogger('goobook')
 
 CONFIG_FILE = '~/.goobookrc'
 CONFIG_TEMPLATE = '''\
@@ -261,6 +261,7 @@ def read_config(config_file):
         'cache_expiry_hours': '24',
         }
     if os.path.lexists(config_file):
+        log.info('Reading config: %s', config_file)
         try:
             parser = ConfigParser.SafeConfigParser()
             parser.readfp(open(os.path.expanduser(config_file)))
@@ -269,6 +270,7 @@ def read_config(config_file):
             print >> sys.stderr, "Failed to read configuration %s\n%s" % (config_file, e)
             sys.exit(1)
     if not config.get('email') or not config.get('password'):
+        log.info('email or password missing from config, checking .netrc')
         auth = netrc().authenticators('google.com')
         if auth:
             login = auth[0]
@@ -277,6 +279,8 @@ def read_config(config_file):
                 config['email'] = login
             if not config.get('password'):
                 config['password'] = password
+        else:
+            log.info('No match in .netrc')
     return config
 
 def main():
@@ -297,10 +301,18 @@ Commands:
     parser.set_defaults(config_file=CONFIG_FILE)
     parser.add_option("-c", "--config", dest="config_file",
                     help="Specify alternative configuration file.", metavar="FILE")
+    parser.add_option("-v", "--verbose", dest="logging_level", default=logging.ERROR,
+                    help="Specify alternative configuration file.",
+                    action='store_const', const=logging.INFO)
+    parser.add_option("-d", "--debug", dest="logging_level",
+                    help="Specify alternative configuration file.",
+                    action='store_const', const=logging.DEBUG)
     (options, args) = parser.parse_args()
     if len(args) == 0:
         parser.print_help()
         sys.exit(1)
+    print options.logging_level
+    logging.basicConfig(level=options.logging_level)
     config = read_config(options.config_file)
     goobk = GooBook(config)
     try:
