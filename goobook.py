@@ -28,6 +28,7 @@ import email.header
 import locale
 import logging
 import optparse
+import getpass
 import sys
 import os
 import re
@@ -67,10 +68,10 @@ ENCODING = locale.getpreferredencoding()
 
 class GooBook(object):
     '''This class can't be used as a library as it looks now, it uses sys.stdin
-       print and sys.exit().'''
+       print, sys.exit() and getpass().'''
     def __init__ (self, config):
         self.email = config['email']
-        self.password = config['password']
+        self.__password = config['password']
         self.max_results = config['max_results']
         self.cache_filename = config['cache_filename']
         self.cache_filename = realpath(expanduser(self.cache_filename))
@@ -83,6 +84,12 @@ class GooBook(object):
         }
         <contact> is a {'name':'', 'email':''}
         '''
+
+    @property
+    def password(self):
+        if not self.__password:
+            self.__password = getpass.getpass()
+        return self.__password
 
     def __get_client(self):
         '''Login to Google and return a ContactsClient object.
@@ -260,11 +267,12 @@ def read_config(config_file):
         'cache_filename': '~/.goobook_cache',
         'cache_expiry_hours': '24',
         }
+    config_file = os.path.expanduser(config_file)
     if os.path.lexists(config_file):
         log.info('Reading config: %s', config_file)
         try:
             parser = ConfigParser.SafeConfigParser()
-            parser.readfp(open(os.path.expanduser(config_file)))
+            parser.readfp(open(config_file))
             config.update(dict(parser.items('DEFAULT', raw=True)))
         except (IOError, ConfigParser.ParsingError), e:
             print >> sys.stderr, "Failed to read configuration %s\n%s" % (config_file, e)
@@ -281,6 +289,7 @@ def read_config(config_file):
                 config['password'] = password
         else:
             log.info('No match in .netrc')
+        log.debug(config)
     return config
 
 def main():
@@ -311,7 +320,6 @@ Commands:
     if len(args) == 0:
         parser.print_help()
         sys.exit(1)
-    print options.logging_level
     logging.basicConfig(level=options.logging_level)
     config = read_config(options.config_file)
     goobk = GooBook(config)
