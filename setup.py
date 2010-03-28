@@ -5,7 +5,7 @@
 from distribute_setup import use_setuptools
 use_setuptools()
 
-from setuptools import setup
+from setuptools import setup, find_packages
 class UltraMagicString(object):
     ''' Stolen from http://stackoverflow.com/questions/1162338/whats-the-right-way-to-use-unicode-metadata-in-setup-py
 
@@ -52,7 +52,7 @@ setup(name='goobook',
       install_requires = [
           'gdata>=2.0.7',
           'simplejson>=2.1.0'],
-      py_modules = ['goobook'],
-      entry_points = {'console_scripts': [ 'goobook = goobook:main']}
+      packages = find_packages(),
+      entry_points = {'console_scripts': [ 'goobook = goobook.goobook:main']}
      )
 
