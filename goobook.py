@@ -31,6 +31,7 @@ import optparse
 import getpass
 import sys
 import os
+import subprocess
 import re
 import time
 import ConfigParser
@@ -268,11 +269,17 @@ def read_config(config_file):
         'cache_expiry_hours': '24',
         }
     config_file = os.path.expanduser(config_file)
-    if os.path.lexists(config_file):
-        log.info('Reading config: %s', config_file)
+    if os.path.lexists(config_file) or os.path.lexists(config_file + '.gpg'):
         try:
             parser = ConfigParser.SafeConfigParser()
-            parser.readfp(open(config_file))
+            if os.path.lexists(config_file):
+                log.info('Reading config: %s', config_file)
+                f = open(config_file)
+            else:
+                log.info('Reading config: %s', config_file + '.gpg')
+                sp = subprocess.Popen(['gpg','--no-tty','-q','-d', config_file+".gpg"], stdout=subprocess.PIPE)
+                f = sp.stdout
+            parser.readfp(f)
             config.update(dict(parser.items('DEFAULT', raw=True)))
         except (IOError, ConfigParser.ParsingError), e:
             print >> sys.stderr, "Failed to read configuration %s\n%s" % (config_file, e)
