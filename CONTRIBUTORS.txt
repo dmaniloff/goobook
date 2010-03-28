@@ -1,12 +1,13 @@
-============
 Contributors
 ============
 
 * Adam Spiers
+* Alex Bennee
 * Carlos José Barroso
 * Christer Sjöholm
 * i.emre.sahin
 * jlenton
+* T.V. Raman
 
 If you think you name is missing, please add it (alpha order by first name)
 

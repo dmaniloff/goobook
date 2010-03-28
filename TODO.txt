@@ -1,2 +1,2 @@
-- chain search apps
 - Use primary email when sending to groups.
+- Query for phone numbers
