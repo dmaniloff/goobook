@@ -5,6 +5,9 @@ dev
 ---
 
 * Python 2.5 compability
+* Bug when checking for the config file.
+* Support for GnuPG encrypted config file.
+* Support for prompting for the password.
 
 1.2, 2010-03-12
 ---------------
