@@ -37,6 +37,7 @@ import time
 import ConfigParser
 from netrc import netrc
 from os.path import realpath, expanduser
+from storage import Storage
 
 try:
     import simplejson
@@ -71,12 +72,7 @@ class GooBook(object):
     '''This class can't be used as a library as it looks now, it uses sys.stdin
        print, sys.exit() and getpass().'''
     def __init__ (self, config):
-        self.email = config['email']
-        self.__password = config['password']
-        self.max_results = config['max_results']
-        self.cache_filename = config['cache_filename']
-        self.cache_filename = realpath(expanduser(self.cache_filename))
-        self.cache_expiry_hours = config['cache_expiry_hours']
+        self.config = config
         self.__client = None
         self.contacts = {}
         ''' This is where all the contacts is stored
@@ -88,21 +84,21 @@ class GooBook(object):
 
     @property
     def password(self):
-        if not self.__password:
-            self.__password = getpass.getpass()
-        return self.__password
+        if not self.config.password:
+            self.config.password = getpass.getpass()
+        return self.config.password
 
     def __get_client(self):
         '''Login to Google and return a ContactsClient object.
 
         '''
         if not self.__client:
-            if not self.email or not self.password:
+            if not self.config.email or not self.password:
                 print >> sys.stderr, "ERROR: Missing email or password"
                 sys.exit(1)
             client = ContactsClient()
             client.ssl = True
-            client.ClientLogin(email=self.email, password=self.password, service='cp', source='goobook')
+            client.ClientLogin(email=self.config.email, password=self.password, service='cp', source='goobook')
             self.__client = client
         return self.__client
 
@@ -170,13 +166,14 @@ class GooBook(object):
         contacts = None
 
         # if cache older than cache_expiry_hours
-        if (not os.path.exists(self.cache_filename)) or ((time.time() - os.path.getmtime(self.cache_filename)) >
-            (self.cache_expiry_hours * 60 *60)):
+        if (not os.path.exists(self.config.cache_filename) or
+                ((time.time() - os.path.getmtime(self.config.cache_filename)) >
+                    (self.config.cache_expiry_hours * 60 *60))):
             contacts = self.fetch()
             self.store(contacts)
         if not contacts:
             try:
-                contacts = json.load(open(self.cache_filename))
+                contacts = json.load(open(self.config.cache_filename))
                 if contacts.get('goobook_cache') != '1.1':
                     contacts = None # Old cache format
             except ValueError:
@@ -191,7 +188,7 @@ class GooBook(object):
 
     def fetch_contacts(self):
         client = self.__get_client()
-        query = ContactsQuery(max_results=self.max_results)
+        query = ContactsQuery(max_results=self.config.max_results)
         entries = client.get_contacts(query=query).entry
         return dict([self.__parse_contact(ent) for ent in entries])
 
@@ -227,7 +224,7 @@ class GooBook(object):
 
         """
         if contacts: # never write a empty addressbook
-            json.dump(contacts, open(self.cache_filename, 'w'), indent=2)
+            json.dump(contacts, open(self.config.cache_filename, 'w'), indent=2)
 
     def add(self):
         """Add an address from From: field of a mail.
@@ -261,13 +258,13 @@ def read_config(config_file):
     returns the configuration as a dictionary.
 
     '''
-    config = { # Default values
+    config = Storage({ # Default values
         'email': '',
         'password': '',
         'max_results': '9999',
         'cache_filename': '~/.goobook_cache',
         'cache_expiry_hours': '24',
-        }
+        })
     config_file = os.path.expanduser(config_file)
     if os.path.lexists(config_file) or os.path.lexists(config_file + '.gpg'):
         try:
@@ -277,7 +274,7 @@ def read_config(config_file):
                 f = open(config_file)
             else:
                 log.info('Reading config: %s', config_file + '.gpg')
-                sp = subprocess.Popen(['gpg','--no-tty','-q','-d', config_file+".gpg"], stdout=subprocess.PIPE)
+                sp = subprocess.Popen(['gpg', '--no-tty', '-q', '-d', config_file + ".gpg"], stdout=subprocess.PIPE)
                 f = sp.stdout
             parser.readfp(f)
             config.update(dict(parser.items('DEFAULT', raw=True)))
@@ -296,6 +293,9 @@ def read_config(config_file):
                 config['password'] = password
         else:
             log.info('No match in .netrc')
+
+        config.cache_filename = realpath(expanduser(config.cache_filename))
+
         log.debug(config)
     return config
 
