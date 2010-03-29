@@ -294,9 +294,9 @@ def read_config(config_file):
         else:
             log.info('No match in .netrc')
 
-        config.cache_filename = realpath(expanduser(config.cache_filename))
-
-        log.debug(config)
+    # Ensure paths are fully expanded
+    config.cache_filename = realpath(expanduser(config.cache_filename))
+    log.debug(config)
     return config
 
 def main():
