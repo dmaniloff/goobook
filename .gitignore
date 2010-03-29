@@ -1,0 +1,4 @@
+*.pyc
+goobook.egg-info
+*.egg
+*.gz
