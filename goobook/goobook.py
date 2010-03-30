@@ -282,17 +282,19 @@ def read_config(config_file):
             print >> sys.stderr, "Failed to read configuration %s\n%s" % (config_file, e)
             sys.exit(1)
     if not config.get('email') or not config.get('password'):
-        log.info('email or password missing from config, checking .netrc')
-        auth = netrc().authenticators('google.com')
-        if auth:
-            login = auth[0]
-            password = auth[2]
-            if not config.get('email'):
-                config['email'] = login
-            if not config.get('password'):
-                config['password'] = password
-        else:
-            log.info('No match in .netrc')
+        netrc_file = os.path.expanduser('~/.netrc')
+        if os.path.exists(netrc_file):
+            log.info('email or password missing from config, checking .netrc')
+            auth = netrc(netrc_file).authenticators('google.com')
+            if auth:
+                login = auth[0]
+                password = auth[2]
+                if not config.get('email'):
+                    config['email'] = login
+                if not config.get('password'):
+                    config['password'] = password
+            else:
+                log.info('No match in .netrc')
 
     # Ensure paths are fully expanded
     config.cache_filename = realpath(expanduser(config.cache_filename))
