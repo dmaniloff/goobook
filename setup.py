@@ -53,6 +53,6 @@ setup(name='goobook',
           'gdata>=2.0.7',
           'simplejson>=2.1.0'],
       packages = find_packages(),
-      entry_points = {'console_scripts': [ 'goobook = goobook.goobook:main']}
+      entry_points = {'console_scripts': [ 'goobook = goobook.application:main']}
      )
 

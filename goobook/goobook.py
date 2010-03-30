@@ -27,17 +27,11 @@ google data api (gdata).
 import email.header
 import locale
 import logging
-import optparse
 import getpass
 import sys
 import os
-import subprocess
 import re
 import time
-import ConfigParser
-from netrc import netrc
-from os.path import realpath, expanduser
-from storage import Storage
 
 try:
     import simplejson
@@ -45,26 +39,11 @@ try:
 except ImportError:
     import json
 
-import gdata
 from gdata.contacts.client import ContactsClient, ContactsQuery
 from gdata.contacts.data import ContactEntry
 from gdata.data import Email, Name, FullName
 
-log = logging.getLogger('goobook')
-
-CONFIG_FILE = '~/.goobookrc'
-CONFIG_TEMPLATE = '''\
-# "#" or ";" at the start of a line makes it a comment.
-[DEFAULT]
-# If not given here, email and password is taken from .netrc using
-# machine google.com
-;email: user@gmail.com
-;password: top secret
-# The following are optional, defaults are shown
-;max_results: 9999
-;cache_filename: ~/.goobook_cache
-;cache_expiry_hours: 24
-'''
+log = logging.getLogger(__name__)
 
 ENCODING = locale.getpreferredencoding()
 
@@ -253,102 +232,3 @@ class GooBook(object):
         client.create_contact(new_contact)
         print 'Created contact:', name.encode(ENCODING), mailaddr.encode(ENCODING)
 
-def read_config(config_file):
-    '''Reads the ~/.goobookrc and ~/.netrc.
-    returns the configuration as a dictionary.
-
-    '''
-    config = Storage({ # Default values
-        'email': '',
-        'password': '',
-        'max_results': '9999',
-        'cache_filename': '~/.goobook_cache',
-        'cache_expiry_hours': '24',
-        })
-    config_file = os.path.expanduser(config_file)
-    if os.path.lexists(config_file) or os.path.lexists(config_file + '.gpg'):
-        try:
-            parser = ConfigParser.SafeConfigParser()
-            if os.path.lexists(config_file):
-                log.info('Reading config: %s', config_file)
-                f = open(config_file)
-            else:
-                log.info('Reading config: %s', config_file + '.gpg')
-                sp = subprocess.Popen(['gpg', '--no-tty', '-q', '-d', config_file + ".gpg"], stdout=subprocess.PIPE)
-                f = sp.stdout
-            parser.readfp(f)
-            config.update(dict(parser.items('DEFAULT', raw=True)))
-        except (IOError, ConfigParser.ParsingError), e:
-            print >> sys.stderr, "Failed to read configuration %s\n%s" % (config_file, e)
-            sys.exit(1)
-    if not config.get('email') or not config.get('password'):
-        netrc_file = os.path.expanduser('~/.netrc')
-        if os.path.exists(netrc_file):
-            log.info('email or password missing from config, checking .netrc')
-            auth = netrc(netrc_file).authenticators('google.com')
-            if auth:
-                login = auth[0]
-                password = auth[2]
-                if not config.get('email'):
-                    config['email'] = login
-                if not config.get('password'):
-                    config['password'] = password
-            else:
-                log.info('No match in .netrc')
-
-    # Ensure paths are fully expanded
-    config.cache_filename = realpath(expanduser(config.cache_filename))
-    log.debug(config)
-    return config
-
-def main():
-    class MyParser(optparse.OptionParser):
-        def format_epilog(self, formatter):
-            return self.epilog
-    usage = 'usage: %prog [options] <command> [<arg>]'
-    description = 'Search you Google contacts from mutt or the command-line.'
-    epilog = '''\
-Commands:
-  add              Add the senders address to contacts, reads a mail from STDIN.
-  reload           Force reload of the cache.
-  query <query>    Search contacts using query (regex).
-  config-template  Prints a template for .goobookrc to STDOUT
-
-'''
-    parser = MyParser(usage=usage, description=description, epilog=epilog)
-    parser.set_defaults(config_file=CONFIG_FILE)
-    parser.add_option("-c", "--config", dest="config_file",
-                    help="Specify alternative configuration file.", metavar="FILE")
-    parser.add_option("-v", "--verbose", dest="logging_level", default=logging.ERROR,
-                    help="Specify alternative configuration file.",
-                    action='store_const', const=logging.INFO)
-    parser.add_option("-d", "--debug", dest="logging_level",
-                    help="Specify alternative configuration file.",
-                    action='store_const', const=logging.DEBUG)
-    (options, args) = parser.parse_args()
-    if len(args) == 0:
-        parser.print_help()
-        sys.exit(1)
-    logging.basicConfig(level=options.logging_level)
-    config = read_config(options.config_file)
-    goobk = GooBook(config)
-    try:
-        cmd = args.pop(0)
-        if cmd == "query":
-            if len(args) != 1:
-                parser.error("incorrect number of arguments")
-            goobk.query(args[0].decode(ENCODING))
-        elif cmd == "add":
-            goobk.add()
-        elif cmd == "reload":
-            goobk.store(goobk.fetch())
-        elif cmd == "config-template":
-            print CONFIG_TEMPLATE
-        else:
-            parser.error('Command not recognized: %s' % cmd)
-    except gdata.client.BadAuthentication, e:
-        print >> sys.stderr, e # Incorrect username or password
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()
