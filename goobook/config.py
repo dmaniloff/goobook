@@ -11,7 +11,7 @@ import os
 import subprocess
 import sys
 
-from goobook.storage import Storage
+from hcs_utils.storage import Storage
 from netrc import netrc
 from os.path import realpath, expanduser
 
