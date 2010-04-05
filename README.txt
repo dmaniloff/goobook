@@ -70,7 +70,6 @@ To get access too more settings you can create ~/.goobookrc::
     email: user@gmail.com
     password: top secret
     # The following are optional, defaults are shown
-    max_results: 9999
     cache_filename: ~/.goobook_cache
     cache_expiry_hours: 24
 

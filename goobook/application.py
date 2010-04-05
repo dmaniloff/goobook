@@ -12,7 +12,7 @@ import logging
 import optparse
 import sys
 
-from goobook.goobook import GooBook
+from goobook.goobook import GooBook, Cache
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +25,6 @@ CONFIG_TEMPLATE = '''\
 ;email: user@gmail.com
 ;password: top secret
 # The following are optional, defaults are shown
-;max_results: 9999
 ;cache_filename: ~/.goobook_cache
 ;cache_expiry_hours: 24
 '''
@@ -62,17 +61,19 @@ Commands:
         sys.exit(1)
     logging.basicConfig(level=options.logging_level)
     config = goobook.config. read_config(options.config_file)
-    goobk = GooBook(config)
     try:
         cmd = args.pop(0)
         if cmd == "query":
             if len(args) != 1:
                 parser.error("incorrect number of arguments")
+            goobk = GooBook(config)
             goobk.query(args[0].decode(ENCODING))
         elif cmd == "add":
-            goobk.add()
+            goobk = GooBook(config)
+            goobk.add_email_from(sys.stdin)
         elif cmd == "reload":
-            goobk.store(goobk.fetch())
+            cache = Cache(config)
+            cache.load(force_update=True)
         elif cmd == "config-template":
             print CONFIG_TEMPLATE
         else:

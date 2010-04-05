@@ -25,6 +25,8 @@ google data api (gdata).
 '''
 
 import email.header
+import gdata.service
+import itertools
 import locale
 import logging
 import getpass
@@ -42,176 +44,117 @@ except ImportError:
 from gdata.contacts.client import ContactsClient, ContactsQuery
 from gdata.contacts.data import ContactEntry
 from gdata.data import Email, Name, FullName
+from hcs_utils.memoize import memoize
+from hcs_utils.storage import Storage
+from hcs_utils.json import jget
 
 log = logging.getLogger(__name__)
 
+CACHE_FORMAT_VERSION = '1.2'
 ENCODING = locale.getpreferredencoding()
+G_MAX_SRESULTS = 9999 # Maximum number of entries to ask google for.
 
 class GooBook(object):
     '''This class can't be used as a library as it looks now, it uses sys.stdin
        print, sys.exit() and getpass().'''
     def __init__ (self, config):
-        self.config = config
-        self.__client = None
-        self.contacts = {}
-        ''' This is where all the contacts is stored
-        {'contacts': {contact_id: <contact>}
-         'groups': {'group': [contact_id] ]
-        }
-        <contact> is a {'name':'', 'email':''}
-        '''
-
-    @property
-    def password(self):
-        if not self.config.password:
-            self.config.password = getpass.getpass()
-        return self.config.password
-
-    def __get_client(self):
-        '''Login to Google and return a ContactsClient object.
-
-        '''
-        if not self.__client:
-            if not self.config.email or not self.password:
-                print >> sys.stderr, "ERROR: Missing email or password"
-                sys.exit(1)
-            client = ContactsClient()
-            client.ssl = True
-            client.ClientLogin(email=self.config.email, password=self.password, service='cp', source='goobook')
-            self.__client = client
-        return self.__client
-
-    def __query_contacts(self, query):
-        match = re.compile(query, re.I).search
-        for contact in self.contacts['contacts'].itervalues():
-            for field in ('name', 'nick', 'emails'):
-                value = contact.get(field, None)
-                if not value:
-                    pass
-                elif isinstance(value, basestring):
-                    if value and match(value):
-                        yield contact
-                        break
-                else: #value is list
-                    found_one = False
-                    for value2 in value:
-                        if value2 and match(value2):
-                            yield contact
-                            found_one = True
-                            break
-                    if found_one:
-                        break
-
-    def __query_groups(self, query):
-        match = re.compile(query, re.I).search
-        for (group_id, group_name) in self.contacts['groups'].iteritems():
-            if match(group_name):
-                yield (group_name, list(self.__get_group_contacts(group_id)))
+        self.cache = Cache(config)
+        self.cache.load()
 
     def query(self, query):
         """Do the query, and print it out in
 
         """
-        self.load()
         #query contacts
-        matching_contacts = sorted(self.__query_contacts(query), key=lambda c: c['name'])
+        matching_contacts = sorted(self.__query_contacts(query), key=lambda c: c.title)
         #query groups
-        matching_groups = sorted(self.__query_groups(query), key=lambda g: g[0])
+        matching_groups = sorted(self.__query_groups(query), key=lambda g: g.title)
         # mutt's query_command expects the first line to be a message,
         # which it discards.
         print "\n",
         for contact in matching_contacts:
-            if 'emails' in contact and contact['emails']:
-                emailaddrs = sorted(contact['emails'])
+            if contact.emails:
+                emailaddrs = sorted(contact.emails)
                 for emailaddr in emailaddrs:
-                    print (u'%s\t%s' % (emailaddr, contact['name'])).encode(ENCODING)
-        for group_name, contacts in matching_groups:
-            emails = ['%s <%s>' % (c['name'], c['emails'][0]) for c in contacts if c['emails']]
+                    print (u'%s\t%s' % (emailaddr, contact.title)).encode(ENCODING)
+        for group in matching_groups:
+            emails = ['%s <%s>' % (c.title, c.emails[0]) for c in group.contacts if c.emails]
             emails = ', '.join(emails)
             if not emails:
                 continue
-            print (u'%s\t%s (group)' % (emails, group_name)).encode(ENCODING)
+            print (u'%s\t%s (group)' % (emails, group.title)).encode(ENCODING)
 
-    def __get_group_contacts(self, group_id):
-        for contact in self.contacts['contacts'].itervalues():
-            if group_id in contact['groups']:
-                yield contact
-
-    def load(self):
-        """Load the cached addressbook feed, or fetch it (again) if it is
-        old or missing or invalid or anyting
-
-        """
-        contacts = None
-
-        # if cache older than cache_expiry_hours
-        if (not os.path.exists(self.config.cache_filename) or
-                ((time.time() - os.path.getmtime(self.config.cache_filename)) >
-                    (self.config.cache_expiry_hours * 60 *60))):
-            contacts = self.fetch()
-            self.store(contacts)
-        if not contacts:
-            try:
-                contacts = json.load(open(self.config.cache_filename))
-                if contacts.get('goobook_cache') != '1.1':
-                    contacts = None # Old cache format
-            except ValueError:
-                pass # Failed to read JSON file.
-        if not contacts:
-            contacts = self.fetch()
-            self.store(contacts)
-        if not contacts:
-            raise Exception('Failed to find any contacts') # TODO
-        self.contacts = contacts
-
-
-    def fetch_contacts(self):
-        client = self.__get_client()
-        query = ContactsQuery(max_results=self.config.max_results)
-        entries = client.get_contacts(query=query).entry
-        return dict([self.__parse_contact(ent) for ent in entries])
+#    @property
+#    def password(self):
+#        if not self.config.password:
+#            self.config.password = getpass.getpass()
+#        return self.config.password
 
     @staticmethod
-    def __parse_contact(ent):
-        '''takes a gdata contact entry and returns a parsed contact.
-        on the form (contact_id, {fieldname:content})
+    def __parse_contact(entry):
+        '''Extracts interesting contact info from cache.'''
+        contact = Storage()
+        contact.id = entry['id']['$t']
+        contact.title = entry['title']['$t']
+        contact.nickname = jget(entry, '', 'gContact$nickname', '$t')
+        contact.emails = [e['address'] for e in entry.get('gd$email', [])]
+        contact.groups = [e['href'] for e in entry.get('gContact$groupMembershipInfo', []) if e['deleted'] == 'false']
+        log.debug('Parsed contact %s', contact)
+        return contact
 
-        '''
-        contact = {}
-        contact['name'] = ent.title.text
-        contact['emails'] = [emailent.address for emailent in ent.email]
-        if ent.nickname:
-            contact['nick'] = ent.nickname.text
-        contact['groups'] = [g.href for g in ent.group_membership_info]
-        return (ent.id.text, contact)
+    @staticmethod
+    def __parse_group(entry):
+        '''Extracts interesting group info from cache.'''
+        group = Storage()
+        group.id = entry['id']['$t']
+        group.title = entry['title']['$t']
+        log.debug('Parsed group %s', group)
+        return group
 
-    def fetch_contact_groups(self):
-        client = self.__get_client()
-        return dict([(g.id.text, g.title.text) for g in client.get_groups().entry])
+    def itercontacts(self):
+        for entry in self.cache.contacts['feed']['entry']:
+            yield self.__parse_contact(entry)
 
-    def fetch(self):
-        """Actually go out on the wire and fetch the addressbook.
-        Returns the contacts data structure.
+    def itergroups(self):
+        for entry in self.cache.groups['feed']['entry']:
+            yield self.__parse_group(entry)
 
-        """
-        contacts = self.fetch_contacts()
-        groups = self.fetch_contact_groups()
-        return {'contacts':contacts, 'groups':groups, 'goobook_cache': '1.1'}
+    def __query_contacts(self, query):
+        match = re.compile(query, re.I).search # create a match function
+        for contact in self.itercontacts():
+            # Collect all values to match against
+            all_values = itertools.chain((contact.title, contact.nickname),
+                                         contact.emails)
+            if any(itertools.imap(match, all_values)):
+                yield contact
 
-    def store(self, contacts):
-        """Pickle the addressbook and a timestamp
+    def __query_groups(self, query):
+        match = re.compile(query, re.I).search # create a match function
+        for group in self.itergroups():
+            # Collect all values to match against
+            all_values = (group.title,)
+            if any(itertools.imap(match, all_values)):
+                group.contacts = list(self.__get_group_contacts(group.id))
+                yield group
 
-        """
-        if contacts: # never write a empty addressbook
-            json.dump(contacts, open(self.config.cache_filename, 'w'), indent=2)
+    def __get_group_contacts(self, group_id):
+        for contact in self.itercontacts():
+            if group_id in contact.groups:
+                yield contact
 
-    def add(self):
+    def add(self, name, email): # TODO
+        pass
+
+    def add_email_from(self, lines):
         """Add an address from From: field of a mail.
-        This assumes a single mail file is supplied through stdin.
+        This assumes a single mail file is supplied through.
+
+        Args:
+          lines: A generator of lines, usually a open file.
 
         """
         from_line = ""
-        for line in sys.stdin:
+        for line in lines:
             if line.startswith("From: "):
                 from_line = line
                 break
@@ -225,10 +168,115 @@ class GooBook(object):
         (name, mailaddr) = email.utils.parseaddr(from_line)
         if not name:
             name = mailaddr
-        #save to contacts
-        client = self.__get_client()
-        new_contact = ContactEntry(name=Name(full_name=FullName(text=name)))
-        new_contact.email.append(Email(address=mailaddr, rel='http://schemas.google.com/g/2005#home', primary='true'))
-        client.create_contact(new_contact)
-        print 'Created contact:', name.encode(ENCODING), mailaddr.encode(ENCODING)
+        self.add(name, mailaddr)
 
+#    def add(self):
+#        """Add an address from From: field of a mail.
+#        This assumes a single mail file is supplied through stdin.
+#
+#        """
+#        from_line = ""
+#        for line in sys.stdin:
+#            if line.startswith("From: "):
+#                from_line = line
+#                break
+#        if from_line == "":
+#            print "Not a valid mail file!"
+#            sys.exit(2)
+#        #Parse From: line
+#        #Take care of non ascii header
+#        from_line = unicode(email.header.make_header(email.header.decode_header(from_line)))
+#        #Parse the From line
+#        (name, mailaddr) = email.utils.parseaddr(from_line)
+#        if not name:
+#            name = mailaddr
+#        #save to contacts
+#        client = self.__get_client()
+#        new_contact = ContactEntry(name=Name(full_name=FullName(text=name)))
+#        new_contact.email.append(Email(address=mailaddr, rel='http://schemas.google.com/g/2005#home', primary='true'))
+#        client.create_contact(new_contact)
+#        print 'Created contact:', name.encode(ENCODING), mailaddr.encode(ENCODING)
+
+
+class Cache(object):
+    def __init__(self, config):
+        self.__config = config
+        self.contacts = {}
+        self.groups = {}
+
+    def load(self, force_update=False):
+        """Load the cached addressbook feed, or fetch it (again) if it is
+        old or missing or invalid or anyting
+
+        Args:
+          force_update: force update of cache
+
+        """
+        cache = None
+
+        # if cache newer than cache_expiry_hours
+        if not force_update and (os.path.exists(self.__config.cache_filename) and
+                ((time.time() - os.path.getmtime(self.__config.cache_filename)) <
+                    (self.__config.cache_expiry_hours * 60 * 60))):
+            try:
+                cache = json.load(open(self.__config.cache_filename))
+                if cache.get('goobook_cache') != CACHE_FORMAT_VERSION:
+                    cache = None # Old cache format
+            except ValueError:
+                pass # Failed to read JSON file.
+        if cache:
+            self.contacts = cache.get('contacts')
+            self.groups = cache.get('groups')
+        else:
+            gc = GoogleContacts(self.__config.email, self.__config.password)
+            self.contacts = gc.fetch_contacts()
+            self.groups = gc.fetch_contact_groups()
+            self.save()
+        if not self.contacts:
+            raise Exception('Failed to find any contacts') # TODO
+
+    def save(self):
+        """Pickle the addressbook and a timestamp
+
+        """
+        if self.contacts: # never write a empty addressbook
+            cache = {'contacts': self.contacts, 'groups': self.groups, 'goobook_cache': CACHE_FORMAT_VERSION}
+            json.dump(cache, open(self.__config.cache_filename, 'w'), indent=2)
+
+class GoogleContacts(object):
+
+    def __init__(self, email, password):
+        self.__email = email
+        self.__client = self.__get_client(password)
+
+    def __get_client(self, password):
+        '''Login to Google and return a ContactsClient object.
+
+        '''
+        if not self.__email or not password:
+            print >> sys.stderr, "ERROR: Missing email or password"
+            sys.exit(1) #TODO
+        client = gdata.service.GDataService(additional_headers={'GData-Version': '3'})
+        client.ssl = True # TODO verify that this works
+        client.ClientLogin(username=self.__email, password=password, service='cp', source='goobook')
+        return client
+
+    def _get(self, query):
+        query.alt = 'json'
+        client = self.__client
+        json_str = client.Get(str(query), converter=str)
+        res = json.loads(json_str)
+        #TODO check not failed
+        return res
+
+    def fetch_contacts(self):
+        query = gdata.service.Query('http://www.google.com/m8/feeds/contacts/default/full')
+        query.max_results = G_MAX_SRESULTS
+        res = self._get(query)
+        return res
+
+    def fetch_contact_groups(self):
+        query = gdata.service.Query('http://www.google.com/m8/feeds/groups/default/full')
+        query.max_results = G_MAX_SRESULTS
+        res = self._get(query)
+        return res

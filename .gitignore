@@ -2,3 +2,5 @@
 goobook.egg-info
 *.egg
 *.gz
+build
+dist

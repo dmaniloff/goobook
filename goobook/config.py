@@ -25,7 +25,6 @@ def read_config(config_file):
     config = Storage({ # Default values
         'email': '',
         'password': '',
-        'max_results': '9999',
         'cache_filename': '~/.goobook_cache',
         'cache_expiry_hours': '24',
         })
@@ -41,11 +40,11 @@ def read_config(config_file):
                 sp = subprocess.Popen(['gpg', '--no-tty', '-q', '-d', config_file + ".gpg"], stdout=subprocess.PIPE)
                 f = sp.stdout
             parser.readfp(f)
-            config.update(dict(parser.items('DEFAULT', raw=True)))
+            config.get_dict().update(dict(parser.items('DEFAULT', raw=True)))
         except (IOError, ConfigParser.ParsingError), e:
             print >> sys.stderr, "Failed to read configuration %s\n%s" % (config_file, e)
             sys.exit(1)
-    if not config.get('email') or not config.get('password'):
+    if not config.email or not config.password:
         netrc_file = os.path.expanduser('~/.netrc')
         if os.path.exists(netrc_file):
             log.info('email or password missing from config, checking .netrc')
@@ -53,10 +52,10 @@ def read_config(config_file):
             if auth:
                 login = auth[0]
                 password = auth[2]
-                if not config.get('email'):
-                    config['email'] = login
-                if not config.get('password'):
-                    config['password'] = password
+                if not config.email:
+                    config.email = login
+                if not config.password:
+                    config.password = password
             else:
                 log.info('No match in .netrc')
 
