@@ -32,6 +32,7 @@ import logging
 import getpass
 import sys
 import os
+import StringIO
 import re
 import time
 
@@ -53,11 +54,13 @@ log = logging.getLogger(__name__)
 CACHE_FORMAT_VERSION = '1.2'
 ENCODING = locale.getpreferredencoding()
 G_MAX_SRESULTS = 9999 # Maximum number of entries to ask google for.
+GDATA_VERSION = '3'
 
 class GooBook(object):
     '''This class can't be used as a library as it looks now, it uses sys.stdin
        print, sys.exit() and getpass().'''
     def __init__ (self, config):
+        self.__config = config
         self.cache = Cache(config)
         self.cache.load()
 
@@ -142,8 +145,27 @@ class GooBook(object):
             if group_id in contact.groups:
                 yield contact
 
-    def add(self, name, email): # TODO
-        pass
+    def add(self, name, email):
+        entry = {
+                "category": [
+                    {
+                        "term": "http://schemas.google.com/contact/2008#contact",
+                        "scheme": "http://schemas.google.com/g/2005#kind"
+                        }
+                    ],
+                "title": {
+                    "$t": name
+                    },
+                "gd$email": [
+                        {
+                            "primary": "true", 
+                            "rel": "http://schemas.google.com/g/2005#other",
+                            "address": email
+                            }
+                        ]
+                }
+        gc = GoogleContacts(self.__config.email, self.__config.password)
+        gc.create_contact(entry)
 
     def add_email_from(self, lines):
         """Add an address from From: field of a mail.
@@ -212,7 +234,7 @@ class Cache(object):
           force_update: force update of cache
 
         """
-        cache = None
+        cache = {}
 
         # if cache newer than cache_expiry_hours
         if not force_update and (os.path.exists(self.__config.cache_filename) and
@@ -256,27 +278,44 @@ class GoogleContacts(object):
         if not self.__email or not password:
             print >> sys.stderr, "ERROR: Missing email or password"
             sys.exit(1) #TODO
-        client = gdata.service.GDataService(additional_headers={'GData-Version': '3'})
+        client = gdata.service.GDataService(additional_headers={'GData-Version': GDATA_VERSION})
         client.ssl = True # TODO verify that this works
         client.ClientLogin(username=self.__email, password=password, service='cp', source='goobook')
         return client
 
     def _get(self, query):
-        query.alt = 'json'
         client = self.__client
         json_str = client.Get(str(query), converter=str)
         res = json.loads(json_str)
         #TODO check not failed
         return res
 
+    def _post(self, data, query):
+        client = self.__client
+        data_f = StringIO.StringIO(data)
+        media_source = gdata.MediaSource(data_f, 'application/json', len(data))
+        json_str = client.Post(media_source, str(query), converter=str)
+        res = json.loads(json_str)
+        #TODO check not failed
+        print res 
+        return res
+
     def fetch_contacts(self):
-        query = gdata.service.Query('http://www.google.com/m8/feeds/contacts/default/full')
+        query = gdata.service.Query('http://www.google.com/m8/feeds/contacts/default/full',
+                params={'v': GDATA_VERSION, 'alt': 'json'})
         query.max_results = G_MAX_SRESULTS
         res = self._get(query)
         return res
 
     def fetch_contact_groups(self):
-        query = gdata.service.Query('http://www.google.com/m8/feeds/groups/default/full')
+        query = gdata.service.Query('http://www.google.com/m8/feeds/groups/default/full',
+                params={'v': GDATA_VERSION, 'alt': 'json'})
         query.max_results = G_MAX_SRESULTS
         res = self._get(query)
         return res
+
+    def create_contact(self, entry):
+        query = gdata.service.Query('http://www.google.com/m8/feeds/contacts/default/full',
+                params={'v': GDATA_VERSION, 'alt': 'json'})
+        self._post(json.dumps(entry), query)
+
