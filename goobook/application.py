@@ -5,12 +5,13 @@
 
 from __future__ import absolute_import
 
-import gdata
+import gdata.client
 import goobook.config
 import locale
 import logging
 import optparse
 import sys
+import xml.etree.ElementTree as ElementTree
 
 from goobook.goobook import GooBook, Cache
 
@@ -69,11 +70,23 @@ Commands:
             goobk = GooBook(config)
             goobk.query(args[0].decode(ENCODING))
         elif cmd == "add":
-            goobk = GooBook(config)
-            goobk.add_email_from(sys.stdin)
+            if len(args) == 0:
+                goobk = GooBook(config)
+                goobk.add_email_from(sys.stdin)
+            elif len(args) == 2:
+                goobk = GooBook(config)
+                goobk.add_mail_contact(args[0], args[1])
         elif cmd == "reload":
             cache = Cache(config)
             cache.load(force_update=True)
+        elif cmd == "dump_contacts":
+            cache = Cache(config)
+            cache.load()
+            print ElementTree.tostring(cache.contacts, 'UTF-8')
+        elif cmd == "dump_groups":
+            cache = Cache(config)
+            cache.load()
+            print ElementTree.tostring(cache.groups, 'UTF-8')
         elif cmd == "config-template":
             print CONFIG_TEMPLATE
         else:

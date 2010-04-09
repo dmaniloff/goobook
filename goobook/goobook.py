@@ -29,32 +29,25 @@ import gdata.service
 import itertools
 import locale
 import logging
-import getpass
-import sys
 import os
-import StringIO
+import pickle
 import re
+import sys
 import time
+import xml.etree.ElementTree as ET
 
-try:
-    import simplejson
-    json = simplejson # this hushes pyflakes
-except ImportError:
-    import json
-
-from gdata.contacts.client import ContactsClient, ContactsQuery
-from gdata.contacts.data import ContactEntry
-from gdata.data import Email, Name, FullName
 from hcs_utils.memoize import memoize
 from hcs_utils.storage import Storage
-from hcs_utils.json import jget
 
 log = logging.getLogger(__name__)
 
-CACHE_FORMAT_VERSION = '1.2'
+CACHE_FORMAT_VERSION = '2.0'
 ENCODING = locale.getpreferredencoding()
 G_MAX_SRESULTS = 9999 # Maximum number of entries to ask google for.
 GDATA_VERSION = '3'
+ATOM_NS = '{http://www.w3.org/2005/Atom}'
+G_NS = '{http://schemas.google.com/g/2005}'
+GC_NS = '{http://schemas.google.com/contact/2008}'
 
 class GooBook(object):
     '''This class can't be used as a library as it looks now, it uses sys.stdin
@@ -90,18 +83,19 @@ class GooBook(object):
 #    @property
 #    def password(self):
 #        if not self.config.password:
-#            self.config.password = getpass.getpass()
+#            self.config.password = getpass.getpass() # TODO move somewhere else
 #        return self.config.password
 
     @staticmethod
     def __parse_contact(entry):
         '''Extracts interesting contact info from cache.'''
         contact = Storage()
-        contact.id = entry['id']['$t']
-        contact.title = entry['title']['$t']
-        contact.nickname = jget(entry, '', 'gContact$nickname', '$t')
-        contact.emails = [e['address'] for e in entry.get('gd$email', [])]
-        contact.groups = [e['href'] for e in entry.get('gContact$groupMembershipInfo', []) if e['deleted'] == 'false']
+        contact.id = entry.findtext(ATOM_NS + 'id')
+        contact.title = entry.findtext(ATOM_NS + 'title')
+        contact.nickname = entry.findtext(GC_NS + 'nickname', default='')
+        contact.emails = [e.get('address') for e in entry.findall(G_NS + 'email')]
+        contact.groups = [e.get('href') for e in entry.findall(GC_NS + 'groupMembershipInfo') if
+            e.get('deleted') == 'false']
         log.debug('Parsed contact %s', contact)
         return contact
 
@@ -109,17 +103,17 @@ class GooBook(object):
     def __parse_group(entry):
         '''Extracts interesting group info from cache.'''
         group = Storage()
-        group.id = entry['id']['$t']
-        group.title = entry['title']['$t']
+        group.id = entry.findtext(ATOM_NS + 'id')
+        group.title = entry.findtext(ATOM_NS + 'title')
         log.debug('Parsed group %s', group)
         return group
 
     def itercontacts(self):
-        for entry in self.cache.contacts['feed']['entry']:
+        for entry in self.cache.contacts.findall(ATOM_NS + 'entry'):
             yield self.__parse_contact(entry)
 
     def itergroups(self):
-        for entry in self.cache.groups['feed']['entry']:
+        for entry in self.cache.groups.findall(ATOM_NS + 'entry'):
             yield self.__parse_group(entry)
 
     def __query_contacts(self, query):
@@ -145,27 +139,20 @@ class GooBook(object):
             if group_id in contact.groups:
                 yield contact
 
-    def add(self, name, email):
-        entry = {
-                "category": [
-                    {
-                        "term": "http://schemas.google.com/contact/2008#contact",
-                        "scheme": "http://schemas.google.com/g/2005#kind"
-                        }
-                    ],
-                "title": {
-                    "$t": name
-                    },
-                "gd$email": [
-                        {
-                            "primary": "true", 
-                            "rel": "http://schemas.google.com/g/2005#other",
-                            "address": email
-                            }
-                        ]
-                }
-        gc = GoogleContacts(self.__config.email, self.__config.password)
-        gc.create_contact(entry)
+    def add_mail_contact(self, name, mailaddr):
+        entry = ET.Element(ATOM_NS + 'entry')
+        ET.SubElement(entry, ATOM_NS + 'category', scheme='http://schemas.google.com/g/2005#kind',
+                term='http://schemas.google.com/contact/2008#contact')
+        fullname_e = ET.Element(G_NS + 'fullName')
+        fullname_e.text = name
+        ET.SubElement(entry, G_NS + 'name').append(fullname_e)
+        ET.SubElement(entry, G_NS + 'email', rel='http://schemas.google.com/g/2005#other', primary='true',
+                address=mailaddr)
+
+        gcont = GoogleContacts(self.__config.email, self.__config.password)
+        log.debug('Going to create contact name: {0} email: {1}'.format(name, mailaddr))
+        gcont.create_contact(entry)
+        log.info('Created contact name: {0} email: {1}'.format(name, mailaddr))
 
     def add_email_from(self, lines):
         """Add an address from From: field of a mail.
@@ -190,41 +177,13 @@ class GooBook(object):
         (name, mailaddr) = email.utils.parseaddr(from_line)
         if not name:
             name = mailaddr
-        self.add(name, mailaddr)
-
-#    def add(self):
-#        """Add an address from From: field of a mail.
-#        This assumes a single mail file is supplied through stdin.
-#
-#        """
-#        from_line = ""
-#        for line in sys.stdin:
-#            if line.startswith("From: "):
-#                from_line = line
-#                break
-#        if from_line == "":
-#            print "Not a valid mail file!"
-#            sys.exit(2)
-#        #Parse From: line
-#        #Take care of non ascii header
-#        from_line = unicode(email.header.make_header(email.header.decode_header(from_line)))
-#        #Parse the From line
-#        (name, mailaddr) = email.utils.parseaddr(from_line)
-#        if not name:
-#            name = mailaddr
-#        #save to contacts
-#        client = self.__get_client()
-#        new_contact = ContactEntry(name=Name(full_name=FullName(text=name)))
-#        new_contact.email.append(Email(address=mailaddr, rel='http://schemas.google.com/g/2005#home', primary='true'))
-#        client.create_contact(new_contact)
-#        print 'Created contact:', name.encode(ENCODING), mailaddr.encode(ENCODING)
-
+        self.add_mail_contact(name, mailaddr)
 
 class Cache(object):
     def __init__(self, config):
         self.__config = config
-        self.contacts = {}
-        self.groups = {}
+        self.contacts = None # ElementTree
+        self.groups = None # ElementTree
 
     def load(self, force_update=False):
         """Load the cached addressbook feed, or fetch it (again) if it is
@@ -241,15 +200,17 @@ class Cache(object):
                 ((time.time() - os.path.getmtime(self.__config.cache_filename)) <
                     (self.__config.cache_expiry_hours * 60 * 60))):
             try:
-                cache = json.load(open(self.__config.cache_filename))
+                log.debug('Loading cache: ' + self.__config.cache_filename)
+                cache = pickle.load(open(self.__config.cache_filename, 'rb'))
                 if cache.get('goobook_cache') != CACHE_FORMAT_VERSION:
                     cache = None # Old cache format
-            except ValueError:
-                pass # Failed to read JSON file.
+            except StandardError:
+                pass # Failed to read cache file.
         if cache:
             self.contacts = cache.get('contacts')
             self.groups = cache.get('groups')
         else:
+            log.info('Retrieving contact data from Google.')
             gc = GoogleContacts(self.__config.email, self.__config.password)
             self.contacts = gc.fetch_contacts()
             self.groups = gc.fetch_contact_groups()
@@ -263,12 +224,12 @@ class Cache(object):
         """
         if self.contacts: # never write a empty addressbook
             cache = {'contacts': self.contacts, 'groups': self.groups, 'goobook_cache': CACHE_FORMAT_VERSION}
-            json.dump(cache, open(self.__config.cache_filename, 'w'), indent=2)
+            pickle.dump(cache, open(self.__config.cache_filename, 'wb'))
 
 class GoogleContacts(object):
 
-    def __init__(self, email, password):
-        self.__email = email
+    def __init__(self, mailaddr, password):
+        self.__email = mailaddr
         self.__client = self.__get_client(password)
 
     def __get_client(self, password):
@@ -280,42 +241,39 @@ class GoogleContacts(object):
             sys.exit(1) #TODO
         client = gdata.service.GDataService(additional_headers={'GData-Version': GDATA_VERSION})
         client.ssl = True # TODO verify that this works
+        #client.debug = True
         client.ClientLogin(username=self.__email, password=password, service='cp', source='goobook')
+        log.debug('Authenticated client')
         return client
 
     def _get(self, query):
-        client = self.__client
-        json_str = client.Get(str(query), converter=str)
-        res = json.loads(json_str)
+        res = self.__client.Get(str(query), converter=ET.fromstring)
         #TODO check not failed
         return res
 
     def _post(self, data, query):
-        client = self.__client
-        data_f = StringIO.StringIO(data)
-        media_source = gdata.MediaSource(data_f, 'application/json', len(data))
-        json_str = client.Post(media_source, str(query), converter=str)
-        res = json.loads(json_str)
+        '''data is a ElementTree'''
+        data = ET.tostring(data)
+        log.debug('POSTing to: %s\n%s', query, data)
+        res = self.__client.Post(data, str(query))
+        log.debug('POST returned: %s' , res)
+        #res = self.__client.Post(data, str(query), converter=str)
         #TODO check not failed
-        print res 
         return res
 
     def fetch_contacts(self):
-        query = gdata.service.Query('http://www.google.com/m8/feeds/contacts/default/full',
-                params={'v': GDATA_VERSION, 'alt': 'json'})
+        query = gdata.service.Query('http://www.google.com/m8/feeds/contacts/default/full')
         query.max_results = G_MAX_SRESULTS
         res = self._get(query)
         return res
 
     def fetch_contact_groups(self):
-        query = gdata.service.Query('http://www.google.com/m8/feeds/groups/default/full',
-                params={'v': GDATA_VERSION, 'alt': 'json'})
+        query = gdata.service.Query('http://www.google.com/m8/feeds/groups/default/full')
         query.max_results = G_MAX_SRESULTS
         res = self._get(query)
         return res
 
     def create_contact(self, entry):
-        query = gdata.service.Query('http://www.google.com/m8/feeds/contacts/default/full',
-                params={'v': GDATA_VERSION, 'alt': 'json'})
-        self._post(json.dumps(entry), query)
+        query = gdata.service.Query('http://www.google.com/m8/feeds/contacts/default/full')
+        self._post(entry, query)
 
