@@ -56,6 +56,7 @@ setup(name='goobook',
         """.splitlines() if f.strip()],
       license = 'GPLv3',
       install_requires = [
+          'argparse>=1.1',
           'gdata>=2.0.7',
           'hcs_utils',
           'simplejson>=2.1.0'],

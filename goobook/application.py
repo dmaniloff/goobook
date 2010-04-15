@@ -5,11 +5,11 @@
 
 from __future__ import absolute_import
 
+import argparse
 import gdata.client
 import goobook.config
 import locale
 import logging
-import optparse
 import sys
 import xml.etree.ElementTree as ElementTree
 
@@ -33,67 +33,87 @@ CONFIG_TEMPLATE = '''\
 ENCODING = locale.getpreferredencoding()
 
 def main():
-    class MyParser(optparse.OptionParser):
-        def format_epilog(self, formatter):
-            return self.epilog
-    usage = 'usage: %prog [options] <command> [<arg>]'
-    description = 'Search you Google contacts from mutt or the command-line.'
-    epilog = '''\
-Commands:
-  add              Add the senders address to contacts, reads a mail from STDIN.
-  reload           Force reload of the cache.
-  query <query>    Search contacts using query (regex).
-  config-template  Prints a template for .goobookrc to STDOUT
+    parser = argparse.ArgumentParser(description='Search you Google contacts from mutt or the command-line.')
+    parser.add_argument('-c', '--config', help='Specify alternative configuration file.', metavar="FILE")
+    parser.add_argument('-v', '--verbose', dest="logging_level", action='store_const',
+            const=logging.INFO, help='Be verbose about what is going on (stderr).')
+    parser.add_argument('-d', '--debug', dest="logging_level", action='store_const',
+            const=logging.DEBUG, help='Output debug info (stderr).')
+    parser.set_defaults(config=CONFIG_FILE, logging_level=logging.ERROR)
 
-'''
-    parser = MyParser(usage=usage, description=description, epilog=epilog)
-    parser.set_defaults(config_file=CONFIG_FILE)
-    parser.add_option("-c", "--config", dest="config_file",
-                    help="Specify alternative configuration file.", metavar="FILE")
-    parser.add_option("-v", "--verbose", dest="logging_level", default=logging.ERROR,
-                    help="Specify alternative configuration file.",
-                    action='store_const', const=logging.INFO)
-    parser.add_option("-d", "--debug", dest="logging_level",
-                    help="Specify alternative configuration file.",
-                    action='store_const', const=logging.DEBUG)
-    (options, args) = parser.parse_args()
-    if len(args) == 0:
-        parser.print_help()
-        sys.exit(1)
-    logging.basicConfig(level=options.logging_level)
-    config = goobook.config. read_config(options.config_file)
+    subparsers = parser.add_subparsers()
+
+    parser_add = subparsers.add_parser('add',
+            description='Create new contact, if name and email is not given the'
+                        ' sender of a mail read from stdin will be used.')
+    parser_add.add_argument('name', nargs='?', metavar='NAME',
+            help='Name to use.')
+    parser_add.add_argument('email', nargs='?', metavar='EMAIL',
+            help='E-mail to use.')
+    parser_add.set_defaults(func=do_add)
+
+    parser_config_template = subparsers.add_parser('config-template',
+            description='Prints a template for .goobookrc to stdout')
+    parser_config_template.set_defaults(func=do_config_template)
+
+    parser_dump_contacts = subparsers.add_parser('dump_contacts',
+            description='Dump contacts as XML.')
+    parser_dump_contacts.set_defaults(func=do_dump_contacts)
+
+    parser_dump_groups = subparsers.add_parser('dump_groups',
+            description='Dump groups as XML.')
+    parser_dump_groups.set_defaults(func=do_dump_groups)
+
+    parser_query = subparsers.add_parser('query',
+            description='Search contacts using query (regex).')
+    parser_query.add_argument('query', help='regex to search for.', metavar='QUERY')
+    parser_query.set_defaults(func=do_query)
+
+    parser_reload = subparsers.add_parser('reload',
+            description='Force reload of the cache.')
+    parser_reload.set_defaults(func=do_reload)
+
+    args = parser.parse_args()
+
+    logging.basicConfig(level=args.logging_level)
+    config = goobook.config. read_config(args.config)
+
     try:
-        cmd = args.pop(0)
-        if cmd == "query":
-            if len(args) != 1:
-                parser.error("incorrect number of arguments")
-            goobk = GooBook(config)
-            goobk.query(args[0].decode(ENCODING))
-        elif cmd == "add":
-            if len(args) == 0:
-                goobk = GooBook(config)
-                goobk.add_email_from(sys.stdin)
-            elif len(args) == 2:
-                goobk = GooBook(config)
-                goobk.add_mail_contact(args[0], args[1])
-        elif cmd == "reload":
-            cache = Cache(config)
-            cache.load(force_update=True)
-        elif cmd == "dump_contacts":
-            cache = Cache(config)
-            cache.load()
-            print ElementTree.tostring(cache.contacts, 'UTF-8')
-        elif cmd == "dump_groups":
-            cache = Cache(config)
-            cache.load()
-            print ElementTree.tostring(cache.groups, 'UTF-8')
-        elif cmd == "config-template":
-            print CONFIG_TEMPLATE
-        else:
-            parser.error('Command not recognized: %s' % cmd)
+        args.func(config, args)
     except gdata.client.BadAuthentication, e:
         print >> sys.stderr, e # Incorrect username or password
         sys.exit(1)
+
+##############################################################################
+# sub commands
+
+def do_add(config, args):
+    goobk = GooBook(config)
+    if args.name and args.email:
+        goobk.add_mail_contact(args.name, args.email)
+    else:
+        goobk.add_email_from(sys.stdin)
+
+def do_config_template(config, args):
+    print CONFIG_TEMPLATE
+
+def do_dump_contacts(config, args):
+    cache = Cache(config)
+    cache.load()
+    print ElementTree.tostring(cache.contacts, 'UTF-8')
+
+def do_dump_groups(config, args):
+    cache = Cache(config)
+    cache.load()
+    print ElementTree.tostring(cache.groups, 'UTF-8')
+
+def do_query(config, args):
+    goobk = GooBook(config)
+    goobk.query(args.query.decode(ENCODING))
+
+def do_reload(config, args):
+    cache = Cache(config)
+    cache.load(force_update=True)
 
 if __name__ == '__main__':
     main()
