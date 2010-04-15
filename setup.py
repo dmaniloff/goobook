@@ -2,10 +2,16 @@
 # vim: fileencoding=UTF-8 filetype=python ff=unix expandtab sw=4 sts=4 tw=120
 # author: Christer Sjöholm -- goobook AT furuvik DOT net
 
+import os
+
 from distribute_setup import use_setuptools
 use_setuptools()
-
 from setuptools import setup, find_packages
+
+here = os.path.abspath(os.path.dirname(__file__))
+README = open(os.path.join(here, 'README.txt')).read()
+NEWS = open(os.path.join(here, 'CHANGES.txt')).read()
+
 class UltraMagicString(object):
     ''' Stolen from http://stackoverflow.com/questions/1162338/whats-the-right-way-to-use-unicode-metadata-in-setup-py
 
@@ -34,7 +40,7 @@ class UltraMagicString(object):
 setup(name='goobook',
       version = '1.3',
       description = 'Search your google contacts from mutt.',
-      long_description=UltraMagicString(open('README.txt').read()),
+      long_description=UltraMagicString(README + '\n\n' + NEWS),
       maintainer = UltraMagicString('Christer Sjöholm'),
       maintainer_email = 'goobook@furuvik.net',
       url = 'http://goobook.googlecode.com/',
