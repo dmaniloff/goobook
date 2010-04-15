@@ -3,3 +3,4 @@
 - Make it possible to configure goobook to read dumps instead of calling Google.
 - Make it configurable only to search contacts in a specified group.
 - OAuth support so that no password needs to be stored.   http://github.com/simplegeo/python-oauth2
+- replace optparse with argparse
