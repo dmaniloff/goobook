@@ -6,6 +6,7 @@
 from __future__ import absolute_import
 
 import ConfigParser
+import getpass
 import logging
 import os
 import subprocess
@@ -58,6 +59,13 @@ def read_config(config_file):
                     config.password = password
             else:
                 log.info('No match in .netrc')
+
+    #replace password field with a function.
+    if config.password == 'prompt':
+        config.password = getpass.getpass
+    else:
+        password = config.password
+        config.password = lambda: password
 
     # Ensure paths are fully expanded
     config.cache_filename = realpath(expanduser(config.cache_filename))

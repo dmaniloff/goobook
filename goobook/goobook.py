@@ -36,7 +36,6 @@ import sys
 import time
 import xml.etree.ElementTree as ET
 
-from hcs_utils.memoize import memoize
 from hcs_utils.storage import Storage
 
 log = logging.getLogger(__name__)
@@ -79,12 +78,6 @@ class GooBook(object):
             if not emails:
                 continue
             print (u'%s\t%s (group)' % (emails, group.title)).encode(ENCODING)
-
-#    @property
-#    def password(self):
-#        if not self.config.password:
-#            self.config.password = getpass.getpass() # TODO move somewhere else
-#        return self.config.password
 
     @staticmethod
     def __parse_contact(entry):
@@ -149,7 +142,7 @@ class GooBook(object):
         ET.SubElement(entry, G_NS + 'email', rel='http://schemas.google.com/g/2005#other', primary='true',
                 address=mailaddr)
 
-        gcont = GoogleContacts(self.__config.email, self.__config.password)
+        gcont = GoogleContacts(self.__config.email, self.__config.password())
         log.debug('Going to create contact name: {0} email: {1}'.format(name, mailaddr))
         gcont.create_contact(entry)
         log.info('Created contact name: {0} email: {1}'.format(name, mailaddr))
@@ -211,7 +204,7 @@ class Cache(object):
             self.groups = cache.get('groups')
         else:
             log.info('Retrieving contact data from Google.')
-            gc = GoogleContacts(self.__config.email, self.__config.password)
+            gc = GoogleContacts(self.__config.email, self.__config.password())
             self.contacts = gc.fetch_contacts()
             self.groups = gc.fetch_contact_groups()
             self.save()
