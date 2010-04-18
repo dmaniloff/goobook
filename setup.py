@@ -39,16 +39,18 @@ class UltraMagicString(object):
 
 setup(name='goobook',
       version = '1.3',
-      description = 'Search your google contacts from mutt.',
+      description = 'Search your google contacts from the command-line or mutt.',
       long_description=UltraMagicString(README + '\n\n' + NEWS),
       maintainer = UltraMagicString('Christer Sjöholm'),
       maintainer_email = 'goobook@furuvik.net',
       url = 'http://goobook.googlecode.com/',
+      download_url = 'http://pypi.python.org/pypi/goobook',
       classifiers = [f.strip() for f in """
         Development Status :: 5 - Production/Stable
         Environment :: Console
         Operating System :: OS Independent
         Programming Language :: Python
+        Programming Language :: Python :: 2.5
         Programming Language :: Python :: 2.6
         Intended Audience :: End Users/Desktop
         License :: OSI Approved :: GNU General Public License (GPL)
@@ -58,7 +60,7 @@ setup(name='goobook',
       install_requires = [
           'argparse>=1.1',
           'gdata>=2.0.7',
-          'hcs_utils',
+          'hcs_utils>=1.0rc1',
           'simplejson>=2.1.0'],
       packages = find_packages(),
       entry_points = {'console_scripts': [ 'goobook = goobook.application:main']}

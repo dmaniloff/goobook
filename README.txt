@@ -121,4 +121,4 @@ Feedback and getting involved
 
 - Mailing list: http://groups.google.com/group/goobook
 - Issue tracker: http://code.google.com/p/goobook/issues/list
-- Code Repository: http://code.google.com/p/goobook/source/checkout
+- Code Repository: http://gitorious.org/goobook
