@@ -5,9 +5,13 @@ dev
 ---
 
 * Python 2.5 compability
-* Bug when checking for the config file.
-* Support for GnuPG encrypted config file.
-* Support for prompting for the password.
+* Support for using a GnuPG encrypted config file.
+* Added possibility to prompt for password.
+* Added possibility to add a contact from the command-line.
+* Fixed bug when checking for the config file.
+* Added flags --verbose and --debug
+* Now caching all contact data.
+* Major refactoring
 
 1.2, 2010-03-12
 ---------------
