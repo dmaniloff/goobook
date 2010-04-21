@@ -4,40 +4,40 @@ GooBook -- Access your Google contacts from the command line.
 
 .. contents:: **Table of Contents**
 
--------------------------
 About
--------------------------
+=====
 
-The purpose of GooBook is to make it possible to use your Google Contacts in
-a MUA such as Mutt. It's use mimics that of abook (somewhat).
+The purpose of GooBook is to make it possible to use your Google Contacts from
+the command-line and from MUAs such as Mutt.
+It can be used from Mutt the same way as abook.
 
--------------------------
 Installation Instructions
--------------------------
+=========================
 
-GooBook is only released as a source distribution.
+There is a number of ways to install Python software.
 
-It can be installed using easy_install or pip or manually with the source
-tarball.
+- Using pip
+- Using easy_install
+- Using a source tarball
+- Using source directly from gitorius
+- From a distribution specific repository (Arch Linux AUR)
 
-===================
-easy_install or pip
-===================
+pip or easy_install
+-------------------
 
-This is the recommended way to install goobook.
-If installing this way you will not need to download the source manually.
+This is the recommended way to install goobook for most users.
+When installing this way you will not need to download anything manually.
 
-Run easy_install or pip::
+Run pip or easy_install::
 
-    $ easy_install -U goobook
     $ pip install goobook
+    $ easy_install -U goobook
 
-easy_install is part of setuptools which should come with most distributions.
+easy_install is part of setuptools which should come with most distributions,
+pip is a newer replacement.
 
-
-===================
 Source installation
-===================
+-------------------
 
 Download the source tarball, uncompress it, then run the install command::
 
@@ -45,16 +45,14 @@ Download the source tarball, uncompress it, then run the install command::
     $ cd goobook-*
     $ sudo python ./setup.py install
 
-=========
-Upgrading
-=========
+Upgrading from < 1.0
+--------------------
 
 If you are upgrading from a pre 1.0 version you will have to remove the old
 cachefile and create a new configuration.
 
------------------------------
 Configure
------------------------------
+=========
 
 For most users it will be enough to add an entry to your ~/.netrc::
 
@@ -62,42 +60,39 @@ For most users it will be enough to add an entry to your ~/.netrc::
       login your@google.email
       password secret
 
-To get access too more settings you can create ~/.goobookrc::
+To get access too more settings you can create a configuration file::
 
+    goobook config-template > ~/.goobookrc
+
+It will look like this::
+
+    # "#" or ";" at the start of a line makes it a comment.
     [DEFAULT]
     # If not given here, email and password is taken from .netrc using
     # machine google.com
-    email: user@gmail.com
-    password: top secret
+    ;email: user@gmail.com
+    ;password: top secret
     # The following are optional, defaults are shown
-    cache_filename: ~/.goobook_cache
-    cache_expiry_hours: 24
+    ;cache_filename: ~/.goobook_cache
+    ;cache_expiry_hours: 24
 
-==============
+
+Instead of a plain ``.goobookrc`` you can store it encrypted as ``.goobookrc.gpg``.
+You will need to have a appropriate gpg-agent/pinenty setup, you will not be prompted
+for the gpg passphrase on the console.
+
+If you set the password to "prompt" you will be prompted each time the password is needed
+but this do not work well with mutt.
+
 Proxy settings
-==============
+--------------
 
 If you use a proxy you need to set the https_proxy environment variable.
 
------------------------------
-Usage
------------------------------
+Mutt
+----
 
-To query your contacts::
-
-    $ goobook query QUERY
-
-The add command reads a email from STDIN and adds the From address to your Google contacts::
-
-    $ goobook add
-
-The cache is updated automatically according to the configuration but you can also force an update::
-
-    $ goobook reload
-
-==========
-Mutt Setup
-==========
+If you want to use goobook from mutt.
 
 Set in your .muttrc file::
 
@@ -115,10 +110,35 @@ To add email addresses (with "a" key normally bound to create-alias command)::
 
 If you want to add an email's sender to Contacts, press a while it's selected in the index or pager.
 
------------------------------
-Feedback and getting involved
------------------------------
+Usage
+=====
 
+To query your contacts::
+
+    $ goobook query QUERY
+
+The add command reads a email from STDIN and adds the From address to your Google contacts::
+
+    $ goobook add
+
+The cache is updated automatically according to the configuration but you can also force an update::
+
+    $ goobook reload
+
+For more commands see::
+
+    $ goobook -h
+
+and::
+
+    $ goobook COMMAND -h
+
+Links, Feedback and getting involved
+====================================
+
+- Home page: http://code.google.com/p/goobook
+- PyPI home: http://pypi.python.org/pypi/goobook
 - Mailing list: http://groups.google.com/group/goobook
 - Issue tracker: http://code.google.com/p/goobook/issues/list
 - Code Repository: http://gitorious.org/goobook
+

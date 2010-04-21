@@ -1,16 +1,19 @@
 CHANGES
 =======
 
-dev
----
+1.3a1 2010-04-21
+----------------
 
 * Python 2.5 compability
-* Support for using a GnuPG encrypted config file.
-* Added possibility to prompt for password.
-* Added possibility to add a contact from the command-line.
-* Fixed bug when checking for the config file.
 * Added flags --verbose and --debug
+* Added possibility to add a contact from the command-line.
+* Added possibility to prompt for password.
+* New command: dump_contacts
+* New command: dump_groups
+* New dependency, hcs_utils
 * Now caching all contact data.
+* Support for using a GnuPG encrypted config file.
+* Fixed bug when checking for the config file.
 * Major refactoring
 
 1.2, 2010-03-12
@@ -55,6 +58,4 @@ r8, 2009-12-10
 --------------
 
 ...
-
-// vim: fileencoding=UTF=8 textwidth=79
 
