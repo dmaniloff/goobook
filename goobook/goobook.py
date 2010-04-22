@@ -40,7 +40,7 @@ from hcs_utils.storage import Storage
 
 log = logging.getLogger(__name__)
 
-CACHE_FORMAT_VERSION = '2.0'
+CACHE_FORMAT_VERSION = '3.0'
 ENCODING = locale.getpreferredencoding()
 G_MAX_SRESULTS = 9999 # Maximum number of entries to ask google for.
 GDATA_VERSION = '3'
@@ -79,39 +79,9 @@ class GooBook(object):
                 continue
             print (u'%s\t%s (group)' % (emails, group.title)).encode(ENCODING)
 
-    @staticmethod
-    def __parse_contact(entry):
-        '''Extracts interesting contact info from cache.'''
-        contact = Storage()
-        contact.id = entry.findtext(ATOM_NS + 'id')
-        contact.title = entry.findtext(ATOM_NS + 'title')
-        contact.nickname = entry.findtext(GC_NS + 'nickname', default='')
-        contact.emails = [e.get('address') for e in entry.findall(G_NS + 'email')]
-        contact.groups = [e.get('href') for e in entry.findall(GC_NS + 'groupMembershipInfo') if
-            e.get('deleted') == 'false']
-        log.debug('Parsed contact %s', contact)
-        return contact
-
-    @staticmethod
-    def __parse_group(entry):
-        '''Extracts interesting group info from cache.'''
-        group = Storage()
-        group.id = entry.findtext(ATOM_NS + 'id')
-        group.title = entry.findtext(ATOM_NS + 'title')
-        log.debug('Parsed group %s', group)
-        return group
-
-    def itercontacts(self):
-        for entry in self.cache.contacts.findall(ATOM_NS + 'entry'):
-            yield self.__parse_contact(entry)
-
-    def itergroups(self):
-        for entry in self.cache.groups.findall(ATOM_NS + 'entry'):
-            yield self.__parse_group(entry)
-
     def __query_contacts(self, query):
         match = re.compile(query, re.I).search # create a match function
-        for contact in self.itercontacts():
+        for contact in self.cache.contacts:
             # Collect all values to match against
             all_values = itertools.chain((contact.title, contact.nickname),
                                          contact.emails)
@@ -120,7 +90,7 @@ class GooBook(object):
 
     def __query_groups(self, query):
         match = re.compile(query, re.I).search # create a match function
-        for group in self.itergroups():
+        for group in self.cache.groups:
             # Collect all values to match against
             all_values = (group.title,)
             if any(itertools.imap(match, all_values)):
@@ -142,7 +112,7 @@ class GooBook(object):
         ET.SubElement(entry, G_NS + 'email', rel='http://schemas.google.com/g/2005#other', primary='true',
                 address=mailaddr)
 
-        gcont = GoogleContacts(self.__config.email, self.__config.password())
+        gcont = GoogleContacts(self.__config)
         log.debug('Going to create contact name: {0} email: {1}'.format(name, mailaddr))
         gcont.create_contact(entry)
         log.info('Created contact name: {0} email: {1}'.format(name, mailaddr))
@@ -196,20 +166,26 @@ class Cache(object):
                 log.debug('Loading cache: ' + self.__config.cache_filename)
                 cache = pickle.load(open(self.__config.cache_filename, 'rb'))
                 if cache.get('goobook_cache') != CACHE_FORMAT_VERSION:
+                    log.info('Detected old cache format')
                     cache = None # Old cache format
-            except StandardError:
+            except StandardError as err:
+                log.info('Failed to read the cache file: %s', err)
                 pass # Failed to read cache file.
+                raise
         if cache:
             self.contacts = cache.get('contacts')
             self.groups = cache.get('groups')
         else:
-            log.info('Retrieving contact data from Google.')
-            gc = GoogleContacts(self.__config.email, self.__config.password())
-            self.contacts = gc.fetch_contacts()
-            self.groups = gc.fetch_contact_groups()
-            self.save()
+            self.update()
         if not self.contacts:
             raise Exception('Failed to find any contacts') # TODO
+
+    def update(self):
+        log.info('Retrieving contact data from Google.')
+        gc = GoogleContacts(self.__config)
+        self.contacts = list(self._parse_contacts(gc.fetch_contacts()))
+        self.groups = list(self._parse_groups(gc.fetch_contact_groups()))
+        self.save()
 
     def save(self):
         """Pickle the addressbook and a timestamp
@@ -219,11 +195,42 @@ class Cache(object):
             cache = {'contacts': self.contacts, 'groups': self.groups, 'goobook_cache': CACHE_FORMAT_VERSION}
             pickle.dump(cache, open(self.__config.cache_filename, 'wb'))
 
+    @staticmethod
+    def _parse_contact(entry):
+        '''Extracts interesting contact info from cache.'''
+        contact = Storage()
+        contact.id = entry.findtext(ATOM_NS + 'id')
+        contact.title = entry.findtext(ATOM_NS + 'title')
+        contact.nickname = entry.findtext(GC_NS + 'nickname', default='')
+        contact.emails = [e.get('address') for e in entry.findall(G_NS + 'email')]
+        contact.groups = [e.get('href') for e in entry.findall(GC_NS + 'groupMembershipInfo') if
+            e.get('deleted') == 'false']
+        log.debug('Parsed contact %s', contact)
+        return contact
+
+    @staticmethod
+    def _parse_group(entry):
+        '''Extracts interesting group info from cache.'''
+        group = Storage()
+        group.id = entry.findtext(ATOM_NS + 'id')
+        group.title = entry.findtext(ATOM_NS + 'title')
+        log.debug('Parsed group %s', group)
+        return group
+
+    def _parse_contacts(self, raw_contacts):
+        for entry in raw_contacts.findall(ATOM_NS + 'entry'):
+            yield self._parse_contact(entry)
+
+    def _parse_groups(self, raw_groups):
+        for entry in raw_groups.findall(ATOM_NS + 'entry'):
+            yield self._parse_group(entry)
+
+
 class GoogleContacts(object):
 
-    def __init__(self, mailaddr, password):
-        self.__email = mailaddr
-        self.__client = self.__get_client(password)
+    def __init__(self, config):
+        self.__email = config.email
+        self.__client = self.__get_client(config.password())
 
     def __get_client(self, password):
         '''Login to Google and return a ContactsClient object.

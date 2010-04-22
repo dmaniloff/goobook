@@ -60,7 +60,7 @@ setup(name='goobook',
       install_requires = [
           'argparse>=1.1',
           'gdata>=2.0.7',
-          'hcs_utils>=1.0rc1',
+          'hcs_utils>=1.1.1',
           'simplejson>=2.1.0'],
       packages = find_packages(),
       entry_points = {'console_scripts': [ 'goobook = goobook.application:main']}

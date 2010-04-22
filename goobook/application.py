@@ -13,7 +13,7 @@ import logging
 import sys
 import xml.etree.ElementTree as ElementTree
 
-from goobook.goobook import GooBook, Cache
+from goobook.goobook import GooBook, Cache, GoogleContacts
 
 log = logging.getLogger(__name__)
 
@@ -98,14 +98,12 @@ def do_config_template(config, args):
     print CONFIG_TEMPLATE
 
 def do_dump_contacts(config, args):
-    cache = Cache(config)
-    cache.load()
-    print ElementTree.tostring(cache.contacts, 'UTF-8')
+    goco = GoogleContacts(config)
+    print ElementTree.tostring(goco.fetch_contacts(), 'UTF-8')
 
 def do_dump_groups(config, args):
-    cache = Cache(config)
-    cache.load()
-    print ElementTree.tostring(cache.groups, 'UTF-8')
+    goco = GoogleContacts(config)
+    print ElementTree.tostring(goco.fetch_contact_groups() , 'UTF-8')
 
 def do_query(config, args):
     goobk = GooBook(config)

@@ -1,6 +1,13 @@
 CHANGES
 =======
 
+1.3.dev
+-------
+
+* Faster, more compact cache
+* dump commands no longer use the cache
+* Caching most contact data but not all
+
 1.3a1 2010-04-21
 ----------------
 
