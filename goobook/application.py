@@ -73,7 +73,8 @@ def main():
             description='Force reload of the cache.')
     parser_reload.set_defaults(func=do_reload)
 
-    args = parser.parse_args()
+    args = [arg.decode(ENCODING) for arg in sys.argv[1:]]
+    args = parser.parse_args(args)
 
     logging.basicConfig(level=args.logging_level)
     config = goobook.config. read_config(args.config)
