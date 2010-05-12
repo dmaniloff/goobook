@@ -170,7 +170,6 @@ class Cache(object):
                     cache = None # Old cache format
             except StandardError, err:
                 log.info('Failed to read the cache file: %s', err)
-                pass # Failed to read cache file.
                 raise
         if cache:
             self.contacts = cache.get('contacts')
