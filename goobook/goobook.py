@@ -168,7 +168,7 @@ class Cache(object):
                 if cache.get('goobook_cache') != CACHE_FORMAT_VERSION:
                     log.info('Detected old cache format')
                     cache = None # Old cache format
-            except StandardError as err:
+            except StandardError, err:
                 log.info('Failed to read the cache file: %s', err)
                 pass # Failed to read cache file.
                 raise
