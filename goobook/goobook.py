@@ -98,7 +98,7 @@ class GooBook(object):
                 yield group
 
     def __get_group_contacts(self, group_id):
-        for contact in self.itercontacts():
+        for contact in self.cache.contacts:
             if group_id in contact.groups:
                 yield contact
 
@@ -113,9 +113,9 @@ class GooBook(object):
                 address=mailaddr)
 
         gcont = GoogleContacts(self.__config)
-        log.debug('Going to create contact name: {0} email: {1}'.format(name, mailaddr))
+        log.debug('Going to create contact name: %s email: %s' % (name, mailaddr))
         gcont.create_contact(entry)
-        log.info('Created contact name: {0} email: {1}'.format(name, mailaddr))
+        log.info('Created contact name: %s email: %s' % (name, mailaddr))
 
     def add_email_from(self, lines):
         """Add an address from From: field of a mail.
