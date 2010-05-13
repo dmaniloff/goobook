@@ -4,6 +4,7 @@
 . export/import commands that can be used with another program for
   updating contacts. Primarily for batch processing of contacts.
 . chain search apps? A wrapper (reduce) is probably better.
+. async cache updates
 
 
 // vim fileencoding=UTF=8 syntax=asciidoc textwidth=79
