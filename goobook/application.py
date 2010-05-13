@@ -77,7 +77,11 @@ def main():
     args = parser.parse_args(args)
 
     logging.basicConfig(level=args.logging_level)
-    config = goobook.config. read_config(args.config)
+
+    try:
+        config = goobook.config. read_config(args.config)
+    except goobook.config.ConfigError, err:
+        sys.exit(err)
 
     try:
         args.func(config, args)

@@ -77,12 +77,20 @@ It will look like this::
     ;cache_expiry_hours: 24
 
 
-Instead of a plain ``.goobookrc`` you can store it encrypted as ``.goobookrc.gpg``.
-You will need to have a appropriate gpg-agent/pinenty setup, you will not be prompted
-for the gpg passphrase on the console.
-
 If you set the password to "prompt" you will be prompted each time the password is needed
 but this do not work well with mutt.
+
+Instead of being a plain config file ``.goobookrc`` can be an executable,
+in which case it's output will be used as configuration.
+
+For example if you want to store your configuration encrypted with GnuPG as ``.goobookrc.gpg``
+you can use a ``.goobookrc`` like this::
+
+    #!/bin/sh
+    gpg --no-tty --use-agent -q -d ~/.goobookrc.gpg
+
+You will need to have a appropriate gpg-agent/pinentry setup, you will not be prompted
+for the gpg passphrase on the console.
 
 Proxy settings
 --------------
