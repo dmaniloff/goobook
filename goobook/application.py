@@ -112,7 +112,7 @@ def do_dump_groups(config, args):
 
 def do_query(config, args):
     goobk = GooBook(config)
-    goobk.query(args.query.decode(ENCODING))
+    goobk.query(args.query)
 
 def do_reload(config, args):
     cache = Cache(config)
