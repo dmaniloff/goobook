@@ -40,7 +40,7 @@ from hcs_utils.storage import Storage
 
 log = logging.getLogger(__name__)
 
-CACHE_FORMAT_VERSION = '3.0'
+CACHE_FORMAT_VERSION = '3.1'
 ENCODING = locale.getpreferredencoding()
 G_MAX_SRESULTS = 9999 # Maximum number of entries to ask google for.
 GDATA_VERSION = '3'
@@ -70,8 +70,14 @@ class GooBook(object):
         for contact in matching_contacts:
             if contact.emails:
                 emailaddrs = sorted(contact.emails)
-                for emailaddr in emailaddrs:
-                    print (u'%s\t%s' % (emailaddr, contact.title)).encode(ENCODING)
+                groups = set(self.cache.get_group(gid).title for gid in contact.groups)
+                groups = groups.difference(('System Group: My Contacts',))
+                groups_str = ', '.join(('"' + g + '"' for g in groups))
+                for (emailaddr, kind) in emailaddrs:
+                    extra_str =  kind
+                    if groups_str:
+                        extra_str = extra_str + ' groups: ' + groups_str
+                    print (u'\t'.join((emailaddr, contact.title, extra_str))).encode(ENCODING)
         for group in matching_groups:
             emails = ['%s <%s>' % (c.title, c.emails[0]) for c in group.contacts if c.emails]
             emails = ', '.join(emails)
@@ -84,7 +90,7 @@ class GooBook(object):
         for contact in self.cache.contacts:
             # Collect all values to match against
             all_values = itertools.chain((contact.title, contact.nickname),
-                                         contact.emails)
+                                         (email for email, kind in contact.emails))
             if any(itertools.imap(match, all_values)):
                 yield contact
 
@@ -145,8 +151,8 @@ class GooBook(object):
 class Cache(object):
     def __init__(self, config):
         self.__config = config
-        self.contacts = None # ElementTree
-        self.groups = None # ElementTree
+        self.contacts = None # list of Storage
+        self.groups = None # list of Storage
 
     def load(self, force_update=False):
         """Load the cached addressbook feed, or fetch it (again) if it is
@@ -194,6 +200,12 @@ class Cache(object):
             cache = {'contacts': self.contacts, 'groups': self.groups, 'goobook_cache': CACHE_FORMAT_VERSION}
             pickle.dump(cache, open(self.__config.cache_filename, 'wb'))
 
+    def get_group(self, id_):
+        for group in self.groups:
+            if group.id == id_:
+                return group
+        raise KeyError('Group: ' + id_)
+
     @staticmethod
     def _parse_contact(entry):
         '''Extracts interesting contact info from cache.'''
@@ -201,7 +213,7 @@ class Cache(object):
         contact.id = entry.findtext(ATOM_NS + 'id')
         contact.title = entry.findtext(ATOM_NS + 'title')
         contact.nickname = entry.findtext(GC_NS + 'nickname', default='')
-        contact.emails = [e.get('address') for e in entry.findall(G_NS + 'email')]
+        contact.emails = [(e.get('address'), e.get('rel').split('#')[-1]) for e in entry.findall(G_NS + 'email')]
         contact.groups = [e.get('href') for e in entry.findall(GC_NS + 'groupMembershipInfo') if
             e.get('deleted') == 'false']
         log.debug('Parsed contact %s', contact)
