@@ -213,7 +213,9 @@ class Cache(object):
         contact.id = entry.findtext(ATOM_NS + 'id')
         contact.title = entry.findtext(ATOM_NS + 'title')
         contact.nickname = entry.findtext(GC_NS + 'nickname', default='')
-        contact.emails = [(e.get('address'), e.get('rel').split('#')[-1]) for e in entry.findall(G_NS + 'email')]
+        contact.emails = [ #TODO when is rel missing? is there somethin else instead?
+                (e.get('address'), (e.get('rel') or '#unknown').split('#')[-1])
+                for e in entry.findall(G_NS + 'email')]
         contact.groups = [e.get('href') for e in entry.findall(GC_NS + 'groupMembershipInfo') if
             e.get('deleted') == 'false']
         log.debug('Parsed contact %s', contact)

@@ -6,4 +6,3 @@
 - Optimize speed when doing querys on big datasets.
 - add: allow non quoted multi word names "goobook add Christer Sjöholm hcs@furuvik.net"
 - add: check if the email already is in the contacts, also add a force flag to bypass check.
-- Show email kind in Other column
