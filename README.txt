@@ -60,6 +60,8 @@ For most users it will be enough to add an entry to your ~/.netrc::
       login your@google.email
       password secret
 
+NOTE: The netrc implementation in Python don't support passwords with spaces, use the .goobookrc instead.
+
 To get access too more settings you can create a configuration file::
 
     goobook config-template > ~/.goobookrc
