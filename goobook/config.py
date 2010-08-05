@@ -32,6 +32,15 @@ def read_config(config_file):
     parser = _get_config(config_file)
     if parser:
         config.get_dict().update(dict(parser.items('DEFAULT', raw=True)))
+
+    if config.email and not config.password:
+      log.info('email present but password not, checking keyring...')
+      try:
+        import keyring
+        config.password = keyring.get_password('gmail', config.email)
+      except ImportError:
+        pass
+
     if not config.email or not config.password:
         netrc_file = os.path.expanduser('~/.netrc')
         if os.path.exists(netrc_file):

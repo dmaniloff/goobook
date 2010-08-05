@@ -80,7 +80,7 @@ It will look like this::
 
 
 If you set the password to "prompt" you will be prompted each time the password is needed
-but this do not work well with mutt.
+but this does not work well with mutt.
 
 Instead of being a plain config file ``.goobookrc`` can be an executable,
 in which case it's output will be used as configuration.
@@ -93,6 +93,18 @@ you can use a ``.goobookrc`` like this::
 
 You will need to have a appropriate gpg-agent/pinentry setup, you will not be prompted
 for the gpg passphrase on the console.
+
+Similarly, goobook supports authentication by keyring (via the keyring package
+on pypi). The keyring package supports multiple backends, depending on your
+environment. You should configure it to point to the one you're using by
+default. To use this option, set your e-mail address in the config file but
+leave the password field commented out (or blank). You need to have a password
+for the "gmail" service and your e-mail address stored in the keyring. There
+are several ways to achieve this, here is one:
+
+$ python
+>>> import keyring
+>>> keyring.set_password("gmail", "me@example.com", "secret")
 
 Proxy settings
 --------------
