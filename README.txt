@@ -60,7 +60,7 @@ For most users it will be enough to add an entry to your ~/.netrc::
       login your@google.email
       password secret
 
-NOTE: The netrc implementation in Python don't support passwords with spaces, use the .goobookrc instead.
+NOTE: The netrc implementation in Python don't support passwords with spaces, use the .goobookrc or keyring instead.
 
 To get access too more settings you can create a configuration file::
 
@@ -94,17 +94,19 @@ you can use a ``.goobookrc`` like this::
 You will need to have a appropriate gpg-agent/pinentry setup, you will not be prompted
 for the gpg passphrase on the console.
 
-Similarly, goobook supports authentication by keyring (via the keyring package
-on pypi). The keyring package supports multiple backends, depending on your
+Similarly, goobook supports authentication by keyring_. The keyring package
+supports multiple backends, depending on your
 environment. You should configure it to point to the one you're using by
 default. To use this option, set your e-mail address in the config file but
 leave the password field commented out (or blank). You need to have a password
 for the "gmail" service and your e-mail address stored in the keyring. There
-are several ways to achieve this, here is one:
+are several ways to achieve this, here is one::
 
-$ python
->>> import keyring
->>> keyring.set_password("gmail", "me@example.com", "secret")
+    $ python
+    >>> import keyring
+    >>> keyring.set_password("gmail", "me@example.com", "secret")
+
+.. _keyring: http://pypi.python.org/pypi/keyring
 
 Proxy settings
 --------------
