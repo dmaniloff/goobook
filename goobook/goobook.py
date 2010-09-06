@@ -79,7 +79,7 @@ class GooBook(object):
                         extra_str = extra_str + ' groups: ' + groups_str
                     print (u'\t'.join((emailaddr, contact.title, extra_str))).encode(ENCODING)
         for group in matching_groups:
-            emails = ['%s <%s>' % (c.title, c.emails[0]) for c in group.contacts if c.emails]
+            emails = ['%s <%s>' % (c.title, c.emails[0][0]) for c in group.contacts if c.emails]
             emails = ', '.join(emails)
             if not emails:
                 continue
