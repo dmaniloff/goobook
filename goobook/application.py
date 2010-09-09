@@ -7,6 +7,7 @@ from __future__ import absolute_import
 
 import argparse
 import gdata.client
+import gdata.service
 import goobook.config
 import locale
 import logging
@@ -88,8 +89,8 @@ def main():
         config = goobook.config. read_config(args.config)
         args.func(config, args)
     except goobook.config.ConfigError, err:
-        sys.exit(err)
-    except gdata.client.BadAuthentication, err:
+        sys.exit(u'Configuration error: ' + unicode(err))
+    except gdata.service.BadAuthentication, err:
         sys.exit(err) # Incorrect username or password
 
 ##############################################################################

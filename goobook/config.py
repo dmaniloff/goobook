@@ -8,11 +8,11 @@ from __future__ import absolute_import
 import ConfigParser
 import getpass
 import logging
+import netrc
 import os
 import subprocess
 
 from hcs_utils.storage import Storage
-from netrc import netrc
 from os.path import realpath, expanduser
 
 log = logging.getLogger(__name__)
@@ -45,7 +45,10 @@ def read_config(config_file):
         netrc_file = os.path.expanduser('~/.netrc')
         if os.path.exists(netrc_file):
             log.info('email or password missing from config, checking .netrc')
-            auth = netrc(netrc_file).authenticators('google.com')
+            try:
+                auth = netrc.netrc(netrc_file).authenticators('google.com')
+            except netrc.NetrcParseError, err:
+                raise ConfigError(err)
             if auth:
                 login = auth[0]
                 password = auth[2]
