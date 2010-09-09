@@ -30,9 +30,14 @@ CONFIG_TEMPLATE = '''\
 ;cache_expiry_hours: 24
 '''
 
-ENCODING = locale.getpreferredencoding()
 
 def main():
+    try:
+        encoding = locale.getpreferredencoding()
+    except LookupError:
+        # Some OS X can give a strange encoding
+        encoding = 'UTF-8'
+
     parser = argparse.ArgumentParser(description='Search you Google contacts from mutt or the command-line.')
     parser.add_argument('-c', '--config', help='Specify alternative configuration file.', metavar="FILE")
     parser.add_argument('-v', '--verbose', dest="logging_level", action='store_const',
@@ -73,8 +78,9 @@ def main():
             description='Force reload of the cache.')
     parser_reload.set_defaults(func=do_reload)
 
-    args = [arg.decode(ENCODING) for arg in sys.argv[1:]]
+    args = [arg.decode(encoding) for arg in sys.argv[1:]]
     args = parser.parse_args(args)
+    args.encoding = encoding
 
     logging.basicConfig(level=args.logging_level)
 
