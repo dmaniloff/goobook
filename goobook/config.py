@@ -56,9 +56,14 @@ def read_config(config_file):
             else:
                 log.info('No match in .netrc')
 
+    if not config.email:
+        raise ConfigError('No email given in configfile or .netrc')
+    if not config.password:
+        raise ConfigError('No password could be found using any of the configuration alternatives')
+
     #replace password field with a function.
     if config.password == 'prompt':
-        config.password = getpass.getpass
+        config.password = _password_prompt
     else:
         password = config.password
         config.password = lambda: password
@@ -68,6 +73,11 @@ def read_config(config_file):
     log.debug(config)
     return config
 
+def _password_prompt():
+    password = ''
+    while not password:
+        password = getpass.getpass()
+    return password
 
 def _get_config(config_file):
     '''find, read and parse configuraton.'''

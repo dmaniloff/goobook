@@ -86,14 +86,11 @@ def main():
 
     try:
         config = goobook.config. read_config(args.config)
+        args.func(config, args)
     except goobook.config.ConfigError, err:
         sys.exit(err)
-
-    try:
-        args.func(config, args)
-    except gdata.client.BadAuthentication, e:
-        print >> sys.stderr, e # Incorrect username or password
-        sys.exit(1)
+    except gdata.client.BadAuthentication, err:
+        sys.exit(err) # Incorrect username or password
 
 ##############################################################################
 # sub commands

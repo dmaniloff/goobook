@@ -250,8 +250,6 @@ class GoogleContacts(object):
         '''Login to Google and return a ContactsClient object.
 
         '''
-        if not self.__email or not password:
-            raise Exception("ERROR: Missing email or password") # TODO
         client = gdata.service.GDataService(additional_headers={'GData-Version': GDATA_VERSION})
         client.ssl = True # TODO verify that this works
         #client.debug = True
