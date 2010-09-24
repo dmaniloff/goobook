@@ -167,7 +167,7 @@ class Cache(object):
         # if cache newer than cache_expiry_hours
         if not force_update and (os.path.exists(self.__config.cache_filename) and
                 ((time.time() - os.path.getmtime(self.__config.cache_filename)) <
-                    (self.__config.cache_expiry_hours * 60 * 60))):
+                    (int(self.__config.cache_expiry_hours) * 60 * 60))):
             try:
                 log.debug('Loading cache: ' + self.__config.cache_filename)
                 cache = pickle.load(open(self.__config.cache_filename, 'rb'))
