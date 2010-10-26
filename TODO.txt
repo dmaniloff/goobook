@@ -1,8 +1,31 @@
+== Things than I plan to do ==
+
+Don't sit in in front of your computer waiting for these,
+it might take a while. If you got an idea or want to give me a nudge about one
+of these, please let me know. Of course patches are always welcome.
+
+- when a query match a email-add show that an not all the contacts addresses.
 - Use primary email when sending to groups.
 - Query for phone numbers
 - Make it possible to configure goobook to read dumps instead of calling Google.
 - Make it configurable only to search contacts in a specified group.
-- OAuth support so that no password needs to be stored.   http://github.com/simplegeo/python-oauth2
-- Optimize speed when doing querys on big datasets.
+- Optimize speed when doing queries on big datasets.
 - add: allow non quoted multi word names "goobook add Christer Sjöholm hcs@furuvik.net"
 - add: check if the email already is in the contacts, also add a force flag to bypass check.
+
+
+== Ideas ==
+
+As above, let me hear if there is something you want.
+
+- OAuth support so that no password needs to be stored.   http://github.com/simplegeo/python-oauth2
+- add/edit interface:
+  A prompting interface, like a wizard for adding.
+  Something like "git add --interactive".
+- export/import commands that can be used with another program for
+  updating contacts. Primarily for batch processing of contacts.
+- chain search apps? A wrapper (reduce) is probably better.
+- async cache updates
+
+
+// vim fileencoding=UTF=8 syntax=asciidoc textwidth=79
