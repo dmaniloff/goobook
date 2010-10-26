@@ -4,7 +4,6 @@ Don't sit in in front of your computer waiting for these,
 it might take a while. If you got an idea or want to give me a nudge about one
 of these, please let me know. Of course patches are always welcome.
 
-- when a query match a email-add show that an not all the contacts addresses.
 - Use primary email when sending to groups.
 - Query for phone numbers
 - Make it possible to configure goobook to read dumps instead of calling Google.

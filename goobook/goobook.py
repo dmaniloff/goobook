@@ -89,10 +89,15 @@ class GooBook(object):
         match = re.compile(query, re.I).search # create a match function
         for contact in self.cache.contacts:
             # Collect all values to match against
-            all_values = itertools.chain((contact.title, contact.nickname),
+            all_values = itertools.chain(
                                          (email for email, kind in contact.emails))
-            if any(itertools.imap(match, all_values)):
+            if any(itertools.imap(match, (contact.title, contact.nickname))):
                 yield contact
+            else:
+                matching_addrs = [(email, kind) for (email, kind) in contact.emails if match(email)]
+                if matching_addrs:
+                    contact.emails = matching_addrs # only show matching
+                    yield contact
 
     def __query_groups(self, query):
         match = re.compile(query, re.I).search # create a match function
