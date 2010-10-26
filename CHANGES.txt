@@ -1,16 +1,15 @@
 CHANGES
 =======
 
-1.4a2
---------------
+1.4a2 2010-10-26
+----------------
 
-* When a query match a email-address only show that address and not
+* When a query match a email-address, only show that address and not
   all the contacts addresses.
 * Added option to filter contacts that are in no groups (default on).
 
-
-1.4a1
---------------
+1.4a1 2010-09-24
+----------------
 
 * Fixed mailing to groups
 * Improved some error messages
