@@ -19,18 +19,6 @@ from goobook.goobook import GooBook, Cache, GoogleContacts
 log = logging.getLogger(__name__)
 
 CONFIG_FILE = '~/.goobookrc'
-CONFIG_TEMPLATE = '''\
-# "#" or ";" at the start of a line makes it a comment.
-[DEFAULT]
-# If not given here, email and password is taken from .netrc using
-# machine google.com
-;email: user@gmail.com
-;password: top secret
-# The following are optional, defaults are shown
-;cache_filename: ~/.goobook_cache
-;cache_expiry_hours: 24
-'''
-
 
 def main():
     try:
@@ -86,7 +74,7 @@ def main():
     logging.basicConfig(level=args.logging_level)
 
     try:
-        config = goobook.config. read_config(args.config)
+        config = goobook.config.read_config(args.config)
         args.func(config, args)
     except goobook.config.ConfigError, err:
         sys.exit(u'Configuration error: ' + unicode(err))
@@ -104,7 +92,7 @@ def do_add(config, args):
         goobk.add_email_from(sys.stdin)
 
 def do_config_template(config, args):
-    print CONFIG_TEMPLATE
+    print goobook.config.TEMPLATE
 
 def do_dump_contacts(config, args):
     goco = GoogleContacts(config)

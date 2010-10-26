@@ -17,6 +17,19 @@ from os.path import realpath, expanduser
 
 log = logging.getLogger(__name__)
 
+TEMPLATE = '''\
+# "#" or ";" at the start of a line makes it a comment.
+[DEFAULT]
+# If not given here, email and password is taken from .netrc using
+# machine google.com
+;email: user@gmail.com
+;password: top secret
+# The following are optional, defaults are shown
+;cache_filename: ~/.goobook_cache
+;cache_expiry_hours: 24
+;filter_groupless_contacts: yes
+'''
+
 def read_config(config_file):
     '''Reads the ~/.goobookrc and ~/.netrc.
     returns the configuration as a dictionary.
@@ -27,11 +40,15 @@ def read_config(config_file):
         'password': '',
         'cache_filename': '~/.goobook_cache',
         'cache_expiry_hours': '24',
+        'filter_groupless_contacts': True,
         })
     config_file = os.path.expanduser(config_file)
     parser = _get_config(config_file)
     if parser:
         config.get_dict().update(dict(parser.items('DEFAULT', raw=True)))
+        #Handle not string fields
+        if parser.has_option('DEFAULT', 'filter_groupless_contacts'):
+            config.filter_groupless_contacts = parser.getboolean('DEFAULT', 'filter_groupless_contacts')
 
     if config.email and not config.password:
       log.info('email present but password not, checking keyring...')

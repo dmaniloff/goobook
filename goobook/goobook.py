@@ -88,9 +88,8 @@ class GooBook(object):
     def __query_contacts(self, query):
         match = re.compile(query, re.I).search # create a match function
         for contact in self.cache.contacts:
-            # Collect all values to match against
-            all_values = itertools.chain(
-                                         (email for email, kind in contact.emails))
+            if self.__config.filter_groupless_contacts and not contact.groups:
+                continue # Skip contacts without groups
             if any(itertools.imap(match, (contact.title, contact.nickname))):
                 yield contact
             else:
