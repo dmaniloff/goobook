@@ -5,6 +5,7 @@ Contributors
 * Alex Bennee
 * Carlos José Barroso
 * Christer Sjöholm
+* Marcus Nitzschke
 * T.V. Raman
 * Tycho Andersen
 * i.emre.sahin

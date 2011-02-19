@@ -63,6 +63,11 @@ def main():
     parser_query.add_argument('query', help='regex to search for.', metavar='QUERY')
     parser_query.set_defaults(func=do_query)
 
+    parser_query_details = subparsers.add_parser('dquery',
+            description='Search contacts using query (regex) and print out all info.')
+    parser_query_details.add_argument('query', help='regex to search for.')
+    parser_query_details.set_defaults(func=do_query_details)
+
     parser_reload = subparsers.add_parser('reload',
             description='Force reload of the cache.')
     parser_reload.set_defaults(func=do_reload)
@@ -105,6 +110,10 @@ def do_dump_groups(config, args):
 def do_query(config, args):
     goobk = GooBook(config)
     goobk.query(args.query)
+
+def do_query_details(config, args):
+    goobk = GooBook(config)
+    goobk.query_details(args.query)
 
 def do_reload(config, args):
     cache = Cache(config)

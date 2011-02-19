@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+1.4a3 2011--
+----------------
+
+* Searches also matches on phonenumber (Patch by Marcus Nitzschke).
+* Detailed, human readable, search results (Patch by Marcus Nitzschke).
+
 1.4a2 2010-10-26
 ----------------
 

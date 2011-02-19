@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 # vim: fileencoding=UTF-8 filetype=python ff=unix expandtab sw=4 sts=4 tw=120
 # maintainer: Christer Sjöholm -- goobook AT furuvik DOT net
+# authors: Marcus Nitzschke -- marcus.nitzschke AT gmx DOT com
 #
 # Copyright (C) 2009  Carlos José Barroso
 # Copyright (C) 2010  Christer Sjöholm
@@ -24,6 +25,7 @@ abook for mutt. It's developed in python and uses the fine
 google data api (gdata).
 '''
 
+import codecs
 import email.header
 import gdata.service
 import itertools
@@ -40,7 +42,7 @@ from hcs_utils.storage import Storage
 
 log = logging.getLogger(__name__)
 
-CACHE_FORMAT_VERSION = '3.1'
+CACHE_FORMAT_VERSION = '3.2'
 ENCODING = locale.getpreferredencoding()
 G_MAX_SRESULTS = 9999 # Maximum number of entries to ask google for.
 GDATA_VERSION = '3'
@@ -85,12 +87,58 @@ class GooBook(object):
                 continue
             print (u'%s\t%s (group)' % (emails, group.title)).encode(ENCODING)
 
+    def query_details(self, query):
+        """
+        Method for querying the contacts and printing
+        a detailed view.
+        """
+
+        out = codecs.getwriter(ENCODING)(sys.stdout)
+
+        #query contacts
+        matching_contacts = sorted(self.__query_contacts(query), key=lambda c: c.title)
+        #query groups
+        matching_groups = sorted(self.__query_groups(query), key=lambda g: g.title)
+        for group in matching_groups:
+            matching_contacts += group.contacts
+
+        for contact in matching_contacts:
+            print >> out, "-------------------------"
+            print >> out, contact.title
+            if contact.birthday:
+                print >> out, "Birthday: ", contact.birthday
+            if contact.phonenumbers:
+                print >> out, "Phone:"
+                for (number, kind) in contact.phonenumbers:
+                    print >> out, "\t", number, " (" + kind + ")"
+            if contact.emails:
+                print >> out, "EMail:"
+                emailaddrs = sorted(contact.emails)
+                for (emailaddr, kind) in emailaddrs:
+                    print >> out, "\t", emailaddr, " (" + kind + ")"
+            if contact.im:
+                print >> out, "IM:"
+                for (nick, protocol) in contact.im:
+                    print >> out, "\t", nick, " (", protocol, ")"
+            if contact.addresses:
+                print >> out, "Address:"
+                for (address, kind) in contact.addresses:
+                    print >> out, "\t", address, " (", kind, ")"
+            if contact.groups:
+                print >> out, "Groups:"
+                groups = set(self.cache.get_group(gid).title for gid in contact.groups)
+                groups = groups.difference(('System Group: My Contacts',))
+                groups_str = '\n\t'.join(groups)
+                print >> out, "\t" + groups_str
+
+
     def __query_contacts(self, query):
         match = re.compile(query, re.I).search # create a match function
         for contact in self.cache.contacts:
             if self.__config.filter_groupless_contacts and not contact.groups:
                 continue # Skip contacts without groups
-            if any(itertools.imap(match, (contact.title, contact.nickname))):
+            if any(itertools.imap(match,
+                [contact.title, contact.nickname] + [unicode(number) for (number, kind) in contact.phonenumbers])):
                 yield contact
             else:
                 matching_addrs = [(email, kind) for (email, kind) in contact.emails if match(email)]
@@ -214,15 +262,37 @@ class Cache(object):
     def _parse_contact(entry):
         '''Extracts interesting contact info from cache.'''
         contact = Storage()
+        # ID
         contact.id = entry.findtext(ATOM_NS + 'id')
+        # title
         contact.title = entry.findtext(ATOM_NS + 'title')
+        # nickname
         contact.nickname = entry.findtext(GC_NS + 'nickname', default='')
+        # emails
         contact.emails = []
         for ent in entry.findall(G_NS + 'email'):
             label = ent.get('label') or ent.get('rel').split('#')[-1]
             contact.emails.append((ent.get('address'), label))
+        # groups
         contact.groups = [e.get('href') for e in entry.findall(GC_NS + 'groupMembershipInfo') if
             e.get('deleted') == 'false']
+        # phone
+        contact.phonenumbers = []
+        for ent in entry.findall(G_NS + 'phoneNumber'):
+            label = ent.get('label') or ent.get('rel').split('#')[-1]
+            contact.phonenumbers.append((ent.text, label))
+        # birthday
+        contact.birthday = entry.find(GC_NS + 'birthday').get('when') if entry.findall(GC_NS + 'birthday') else None
+        #address
+        contact.addresses = []
+        for address in entry.findall(G_NS + 'structuredPostalAddress'):
+            label = ent.get('label') or ent.get('rel').split('#')[-1]
+            contact.addresses.append((address.findtext(G_NS + 'formattedAddress'), label))
+        # IM
+        contact.im = []
+        for ent in entry.findall(G_NS + 'im'):
+            contact.im.append((ent.get('address'), ent.get('protocol').split('#')[-1]))
+
         log.debug('Parsed contact %s', contact)
         return contact
 

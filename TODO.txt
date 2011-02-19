@@ -5,7 +5,6 @@ it might take a while. If you got an idea or want to give me a nudge about one
 of these, please let me know. Of course patches are always welcome.
 
 - Use primary email when sending to groups.
-- Query for phone numbers
 - Make it possible to configure goobook to read dumps instead of calling Google.
 - Make it configurable only to search contacts in a specified group.
 - Optimize speed when doing queries on big datasets.
