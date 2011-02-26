@@ -170,6 +170,10 @@ class GooBook(object):
         ET.SubElement(entry, G_NS + 'email', rel='http://schemas.google.com/g/2005#other', primary='true',
                 address=mailaddr)
 
+        group_id = self.cache.get_group_by_title('System Group: My Contacts').id
+        ET.SubElement(entry, GC_NS + 'groupMembershipInfo', deleted='false',
+                href=group_id)
+
         gcont = GoogleContacts(self.__config)
         log.debug('Going to create contact name: %s email: %s' % (name, mailaddr))
         gcont.create_contact(entry)
@@ -257,6 +261,12 @@ class Cache(object):
             if group.id == id_:
                 return group
         raise KeyError('Group: ' + id_)
+
+    def get_group_by_title(self, title):
+        for group in self.groups:
+            if group.title == title:
+                return group
+        raise KeyError('Group: ' + title)
 
     @staticmethod
     def _parse_contact(entry):
