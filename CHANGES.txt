@@ -1,6 +1,9 @@
 CHANGES
 =======
 
+* Fixed bug in parsing postal addresses.
+* Adjusted output format for postal addresses.
+
 1.4a3 2011-02-26
 ----------------
 

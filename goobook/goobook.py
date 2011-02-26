@@ -123,7 +123,9 @@ class GooBook(object):
             if contact.addresses:
                 print >> out, "Address:"
                 for (address, kind) in contact.addresses:
-                    print >> out, "\t", address, " (", kind, ")"
+                    lines = address.splitlines()
+                    lines[0] = '%s ( %s )' %  (lines[0], kind)
+                    print >> out, "\t" + '\n\t'.join(lines)
             if contact.groups:
                 print >> out, "Groups:"
                 groups = set(self.cache.get_group(gid).title for gid in contact.groups)
