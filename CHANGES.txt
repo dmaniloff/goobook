@@ -1,9 +1,11 @@
 CHANGES
 =======
 
-1.4a3 2011--
+1.4a3 2011-02-26
 ----------------
 
+* Added contacts are now added to "My Contacts", this fixes problem with
+  searching now finding contacts you have added with goobook.
 * Searches also matches on phonenumber (Patch by Marcus Nitzschke).
 * Detailed, human readable, search results (Patch by Marcus Nitzschke).
 
