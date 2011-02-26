@@ -51,12 +51,12 @@ def read_config(config_file):
             config.filter_groupless_contacts = parser.getboolean('DEFAULT', 'filter_groupless_contacts')
 
     if config.email and not config.password:
-      log.info('email present but password not, checking keyring...')
-      try:
-        import keyring
-        config.password = keyring.get_password('gmail', config.email)
-      except ImportError:
-        pass
+        log.info('email present but password not, checking keyring...')
+        try:
+            import keyring
+            config.password = keyring.get_password('gmail', config.email)
+        except ImportError:
+            pass
 
     if not config.email or not config.password:
         netrc_file = os.path.expanduser('~/.netrc')
