@@ -296,7 +296,7 @@ class Cache(object):
         #address
         contact.addresses = []
         for address in entry.findall(G_NS + 'structuredPostalAddress'):
-            label = ent.get('label') or ent.get('rel').split('#')[-1]
+            label = address.get('label') or address.get('rel').split('#')[-1]
             contact.addresses.append((address.findtext(G_NS + 'formattedAddress'), label))
         # IM
         contact.im = []
