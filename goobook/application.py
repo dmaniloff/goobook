@@ -11,6 +11,7 @@ import gdata.service
 import goobook.config
 import locale
 import logging
+import pkg_resources
 import sys
 import xml.etree.ElementTree as ElementTree
 
@@ -31,6 +32,10 @@ def main():
     parser.add_argument('-c', '--config', help='Specify alternative configuration file.', metavar="FILE")
     parser.add_argument('-v', '--verbose', dest="logging_level", action='store_const',
             const=logging.INFO, help='Be verbose about what is going on (stderr).')
+    parser.add_argument('-V', '--version',
+            action='version',
+            version='%%(prog)s %s' % pkg_resources.get_distribution("goobook").version,
+            help="Print version and exit")
     parser.add_argument('-d', '--debug', dest="logging_level", action='store_const',
             const=logging.DEBUG, help='Output debug info (stderr).')
     parser.set_defaults(config=CONFIG_FILE, logging_level=logging.ERROR)
