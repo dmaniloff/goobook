@@ -303,7 +303,9 @@ class Cache(object):
         # IM
         contact.im = []
         for ent in entry.findall(G_NS + 'im'):
-            contact.im.append((ent.get('address'), ent.get('protocol').split('#')[-1]))
+            protocol = ent.get('protocol')
+            protocol = protocol.split('#')[-1] if protocol else 'Unknown'
+            contact.im.append((ent.get('address'), protocol))
 
         log.debug('Parsed contact %s', contact)
         return contact
