@@ -26,6 +26,7 @@ google data api (gdata).
 '''
 
 import codecs
+import email.parser
 import email.header
 import gdata.service
 import itertools
@@ -189,21 +190,29 @@ class GooBook(object):
           lines: A generator of lines, usually a open file.
 
         """
-        from_line = ""
-        for line in lines:
-            if line.startswith("From: "):
-                from_line = line
-                break
-        if from_line == "":
+
+        parser = email.parser.HeaderParser()
+        headers = parser.parse(lines)
+        if 'From' not in headers:
             print "Not a valid mail file!"
             sys.exit(2)
-        #Parse From: line
-        #Take care of non ascii header
-        from_line = unicode(email.header.make_header(email.header.decode_header(from_line)))
-        #Parse the From line
-        (name, mailaddr) = email.utils.parseaddr(from_line)
+
+        (name, mailaddr) = email.utils.parseaddr(headers['From'])
         if not name:
             name = mailaddr
+        else:
+            # This decodes headers like "=?iso-8859-1?q?p=F6stal?="
+            values = email.header.decode_header(name)
+            if len(values) == 0:
+                # Can't this be possible?
+                name = mailaddr
+            else:
+                # There should be only one element anyway
+                (name, encoding) = values[0]
+
+                if encoding is not None:
+                    name = name.decode(encoding)
+
         self.add_mail_contact(name, mailaddr)
 
 class Cache(object):
