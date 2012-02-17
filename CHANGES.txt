@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+1.4a5
+----------------
+
+* Fixed IM without protocol, Issue 26
+* Correctly decode encoded From headers, by Jonathan Ballet
+
 1.4a4 2011-02-26
 ----------------
 
