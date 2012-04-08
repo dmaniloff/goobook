@@ -38,6 +38,7 @@ def read_config(config_file):
     config = Storage({ # Default values
         'email': '',
         'password': '',
+        'passwordeval': '',
         'cache_filename': '~/.goobook_cache',
         'cache_expiry_hours': '24',
         'filter_groupless_contacts': True,
@@ -49,6 +50,11 @@ def read_config(config_file):
         #Handle not string fields
         if parser.has_option('DEFAULT', 'filter_groupless_contacts'):
             config.filter_groupless_contacts = parser.getboolean('DEFAULT', 'filter_groupless_contacts')
+
+    if config.email and config.passwordeval:
+        if config.password:
+            raise ConfigError('password and passwordeval can not both appear')
+        _, config.password, _ = os.popen3(config.passwordeval)
 
     if config.email and not config.password:
         log.info('email present but password not, checking keyring...')
