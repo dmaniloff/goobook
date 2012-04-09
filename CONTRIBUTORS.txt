@@ -11,6 +11,7 @@ Contributors
 * i.emre.sahin
 * jlenton
 * Jonathan Ballet
+* Zhihao Yuan
 
 If you think you name is missing, please add it (alpha order by first name)
 

@@ -24,6 +24,8 @@ TEMPLATE = '''\
 # machine google.com
 ;email: user@gmail.com
 ;password: top secret
+# or if you want to get the password from a commmand:
+;passwordeval: gpg --batch -d ~/.mutt/pw.gpg
 # The following are optional, defaults are shown
 ;cache_filename: ~/.goobook_cache
 ;cache_expiry_hours: 24
