@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 # vim: fileencoding=UTF-8 filetype=python ff=unix expandtab sw=4 sts=4 tw=120
 # maintainer: Christer Sjöholm -- goobook AT furuvik DOT net
 # authors: Marcus Nitzschke -- marcus.nitzschke AT gmx DOT com
