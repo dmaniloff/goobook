@@ -29,7 +29,6 @@ import email.parser
 import email.header
 import gdata.service
 import itertools
-import locale
 import logging
 import os
 import pickle
@@ -43,7 +42,6 @@ from hcs_utils.storage import Storage
 log = logging.getLogger(__name__)
 
 CACHE_FORMAT_VERSION = '3.2'
-ENCODING = locale.getpreferredencoding()
 G_MAX_SRESULTS = 9999 # Maximum number of entries to ask google for.
 GDATA_VERSION = '3'
 ATOM_NS = '{http://www.w3.org/2005/Atom}'
@@ -79,13 +77,13 @@ class GooBook(object):
                     extra_str =  kind
                     if groups_str:
                         extra_str = extra_str + ' groups: ' + groups_str
-                    print (u'\t'.join((emailaddr, contact.title, extra_str))).encode(ENCODING)
+                    print (u'\t'.join((emailaddr, contact.title, extra_str))).encode(self.__config.encoding)
         for group in matching_groups:
             emails = ['%s <%s>' % (c.title, c.emails[0][0]) for c in group.contacts if c.emails]
             emails = ', '.join(emails)
             if not emails:
                 continue
-            print (u'%s\t%s (group)' % (emails, group.title)).encode(ENCODING)
+            print (u'%s\t%s (group)' % (emails, group.title)).encode(self.__config.encoding)
 
     def query_details(self, query):
         """
@@ -93,7 +91,7 @@ class GooBook(object):
         a detailed view.
         """
 
-        out = codecs.getwriter(ENCODING)(sys.stdout)
+        out = codecs.getwriter(self.__config.encoding)(sys.stdout)
 
         #query contacts
         matching_contacts = sorted(self.__query_contacts(query), key=lambda c: c.title)

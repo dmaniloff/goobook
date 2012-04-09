@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 import ConfigParser
 import getpass
+import locale
 import logging
 import netrc
 import os
@@ -15,6 +16,12 @@ from hcs_utils.storage import Storage
 from os.path import realpath, expanduser
 
 log = logging.getLogger(__name__)
+
+try:
+    ENCODING = locale.getpreferredencoding() or 'UTF-8'
+except LookupError:
+    # Some OS X can give a strange encoding
+    ENCODING = 'UTF-8'
 
 TEMPLATE = '''\
 # "#" or ";" at the start of a line makes it a comment.
@@ -97,6 +104,10 @@ def read_config(config_file):
 
     # Ensure paths are fully expanded
     config.cache_filename = realpath(expanduser(config.cache_filename))
+
+    # What terminal encoding to use
+    config.encoding = ENCODING
+
     log.debug(config)
     return config
 
