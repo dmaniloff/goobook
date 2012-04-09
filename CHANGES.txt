@@ -3,8 +3,9 @@ CHANGES
 
 1.4a5
 ----------------
-* Fixed IM without protocol, Issue 26
 * Correctly decode encoded From headers, by Jonathan Ballet
+* Fixed IM without protocol, Issue 26
+* Fixed encoding issues on OS X, Issue 33
 * passwordeval, get password from a command by Zhihao Yuan
 
 1.4a4 2011-02-26
