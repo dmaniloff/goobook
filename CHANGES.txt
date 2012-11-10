@@ -5,6 +5,7 @@ CHANGES
 ----------------
 * No longer necessary to configure goobook to be able to generate a configuration template...
 * fixed Issue 35 passwordeval
+* fixed Issue 36: When the contact has no title mutt will use the extra_str as the title.
 
 1.4a5  never released
 ----------------

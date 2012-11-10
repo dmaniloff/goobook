@@ -74,10 +74,11 @@ class GooBook(object):
                 groups = groups.difference(('System Group: My Contacts',))
                 groups_str = ', '.join(('"' + g + '"' for g in groups))
                 for (emailaddr, kind) in emailaddrs:
+                    title = contact.title or contact.nickname or emailaddr
                     extra_str =  kind
                     if groups_str:
                         extra_str = extra_str + ' groups: ' + groups_str
-                    print (u'\t'.join((emailaddr, contact.title, extra_str))).encode(self.__config.encoding)
+                    print (u'\t'.join((emailaddr, title, extra_str))).encode(self.__config.encoding)
         for group in matching_groups:
             emails = ['%s <%s>' % (c.title, c.emails[0][0]) for c in group.contacts if c.emails]
             emails = ', '.join(emails)
