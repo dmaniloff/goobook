@@ -76,7 +76,10 @@ def main():
     logging.basicConfig(level=args.logging_level)
 
     try:
-        config = goobook.config.read_config(args.config)
+        if args.func == do_config_template:
+            config = None
+        else:
+            config = goobook.config.read_config(args.config)
         args.func(config, args)
     except goobook.config.ConfigError, err:
         sys.exit(u'Configuration error: ' + unicode(err))

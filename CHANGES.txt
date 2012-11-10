@@ -1,7 +1,13 @@
 CHANGES
 =======
 
-1.4a5
+1.4a6
+----------------
+* No longer necessary to configure goobook to be able to generate a configuration template...
+
+
+
+1.4a5  never released
 ----------------
 * Correctly decode encoded From headers, by Jonathan Ballet
 * Fixed IM without protocol, Issue 26
