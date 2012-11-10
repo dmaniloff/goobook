@@ -311,7 +311,8 @@ class Cache(object):
         contact.im = []
         for ent in entry.findall(G_NS + 'im'):
             protocol = ent.get('protocol')
-            protocol = protocol.split('#')[-1] if protocol else 'Unknown'
+            # Default protocol is GOOGLE_TALK
+            protocol = ent.get('protocol').split('#')[-1] if protocol else "GOOGLE_TALK"
             contact.im.append((ent.get('address'), protocol))
 
         log.debug('Parsed contact %s', contact)
