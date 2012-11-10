@@ -68,7 +68,14 @@ def read_config(config_file):
         log.info('email present but password not, checking keyring...')
         try:
             import keyring
-            config.password = keyring.get_password('gmail', config.email)
+            try:
+                config.password = keyring.get_password('gmail', config.email)
+            except:
+                # This could be a:
+                #  dbus.exceptions.DBusException: org.freedesktop.DBus.Error.UnknownMethod: Method "OpenSession" with
+                #  signature "ss" on interface "org.freedesktop.Secret.Service" doesn't exist
+                # if keyring isn't started.
+                pass
         except ImportError:
             pass
 

@@ -4,8 +4,9 @@ CHANGES
 1.4a6
 ----------------
 * No longer necessary to configure goobook to be able to generate a configuration template...
-* fixed Issue 35 passwordeval
-* fixed Issue 36: When the contact has no title mutt will use the extra_str as the title.
+* Fixed issue 35: passwordeval
+* Fixed issue 36: When the contact has no title mutt will use the extra_str as the title.
+* Fixed issue 34: Unable to query due to keyring/DBus regression
 
 1.4a5  never released
 ----------------
