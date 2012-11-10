@@ -1,7 +1,7 @@
 CHANGES
 =======
 
-1.4a6
+1.4   2012-11-10
 ----------------
 * No longer necessary to configure goobook to be able to generate a configuration template...
 * Fixed issue 28: No Protocol is set on GTalk IM

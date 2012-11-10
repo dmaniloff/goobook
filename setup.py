@@ -50,8 +50,8 @@ setup(name='goobook',
         Environment :: Console
         Operating System :: OS Independent
         Programming Language :: Python
-        Programming Language :: Python :: 2.5
         Programming Language :: Python :: 2.6
+        Programming Language :: Python :: 2.7
         Intended Audience :: End Users/Desktop
         License :: OSI Approved :: GNU General Public License (GPL)
         Topic :: Communications :: Email :: Address Book
