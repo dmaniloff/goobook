@@ -78,13 +78,13 @@ class GooBook(object):
                     extra_str =  kind
                     if groups_str:
                         extra_str = extra_str + ' groups: ' + groups_str
-                    print (u'\t'.join((emailaddr, title, extra_str))).encode(self.__config.encoding)
+                    print (u'\t'.join((emailaddr, title, extra_str))).encode(self.__config.encoding, errors='replace')
         for group in matching_groups:
             emails = ['%s <%s>' % (c.title, c.emails[0][0]) for c in group.contacts if c.emails]
             emails = ', '.join(emails)
             if not emails:
                 continue
-            print (u'%s\t%s (group)' % (emails, group.title)).encode(self.__config.encoding)
+            print (u'%s\t%s (group)' % (emails, group.title)).encode(self.__config.encoding, errors='replace')
 
     def query_details(self, query):
         """
@@ -92,7 +92,7 @@ class GooBook(object):
         a detailed view.
         """
 
-        out = codecs.getwriter(self.__config.encoding)(sys.stdout)
+        out = codecs.getwriter(self.__config.encoding)(sys.stdout, errors='replace')
 
         #query contacts
         matching_contacts = sorted(self.__query_contacts(query), key=lambda c: c.title)
