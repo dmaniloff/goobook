@@ -4,8 +4,7 @@ CHANGES
 1.4a6
 ----------------
 * No longer necessary to configure goobook to be able to generate a configuration template...
-
-
+* fixed Issue 35 passwordeval
 
 1.4a5  never released
 ----------------

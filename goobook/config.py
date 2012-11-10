@@ -62,7 +62,7 @@ def read_config(config_file):
     if config.email and config.passwordeval:
         if config.password:
             raise ConfigError('password and passwordeval can not both appear')
-        _, config.password, _ = os.popen3(config.passwordeval)
+        config.password = os.popen3(config.passwordeval)[1].read()
 
     if config.email and not config.password:
         log.info('email present but password not, checking keyring...')
