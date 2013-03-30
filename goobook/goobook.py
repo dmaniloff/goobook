@@ -86,6 +86,24 @@ class GooBook(object):
                 continue
             print (u'%s\t%s (group)' % (emails, group.title)).encode(self.__config.encoding, errors='replace')
 
+    def query_simple(self, query):
+        """
+        Simpler output without groups.
+        Prints one match per line with a format of "John Doe <john@example.com>".
+        """
+        #query contacts
+        matching_contacts = sorted(
+            self.__query_contacts(query), key=lambda c: c.title)
+
+        for contact in matching_contacts:
+            if contact.emails:
+                emailaddrs = sorted(contact.emails)
+                for (emailaddr, kind) in emailaddrs:
+                    title = contact.title or contact.nickname or emailaddr
+                    print "{t} <{e}>".format(
+                        t=title.strip(), e=emailaddr.strip()).encode(
+                            self.__config.encoding, errors='replace')
+
     def query_details(self, query):
         """
         Method for querying the contacts and printing
