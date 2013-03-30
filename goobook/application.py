@@ -61,6 +61,11 @@ def main():
     parser_query.add_argument('query', help='regex to search for.', metavar='QUERY')
     parser_query.set_defaults(func=do_query)
 
+    parser_query_simple = subparsers.add_parser('squery',
+            description='Search contacts using query (regex). Simple output format.')
+    parser_query_simple.add_argument('query', help='regex to search for.', metavar='QUERY')
+    parser_query_simple.set_defaults(func=do_query_simple)
+
     parser_query_details = subparsers.add_parser('dquery',
             description='Search contacts using query (regex) and print out all info.')
     parser_query_details.add_argument('query', help='regex to search for.')
@@ -110,6 +115,10 @@ def do_dump_groups(config, args):
 def do_query(config, args):
     goobk = GooBook(config)
     goobk.query(args.query)
+
+def do_query_simple(config, args):
+    goobk = GooBook(config)
+    goobk.query_simple(args.query)
 
 def do_query_details(config, args):
     goobk = GooBook(config)
